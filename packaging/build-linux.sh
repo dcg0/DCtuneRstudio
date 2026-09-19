@@ -8,6 +8,9 @@ cp "$ROOT/dc_tuner_studio.py" "$OUT/"
 cp "$ROOT/protocols.py" "$OUT/"
 cp "$ROOT/ini_loader.py" "$OUT/"
 cp "$ROOT/platform_support.py" "$OUT/"
+if [ -x "$ROOT/dist/DC-Tuner-Studio-Linux-x86_64" ]; then
+  cp "$ROOT/dist/DC-Tuner-Studio-Linux-x86_64" "$OUT/"
+fi
 cp "$ROOT/README.md" "$OUT/"
 cp "$ROOT/THIRD_PARTY_NOTICES.md" "$OUT/"
 mkdir -p "$OUT/docs"
@@ -20,6 +23,9 @@ cat > "$OUT/run-dc-tuner-studio.sh" <<'RUNNER'
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
+if [ -x "./DC-Tuner-Studio-Linux-x86_64" ]; then
+  exec ./DC-Tuner-Studio-Linux-x86_64
+fi
 exec python3 dc_tuner_studio.py
 RUNNER
 chmod +x "$OUT/run-dc-tuner-studio.sh"

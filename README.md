@@ -40,6 +40,16 @@ sudo apt install python3-tk
 python3 dc_tuner_studio.py
 ```
 
+Para construir el ejecutable nativo Linux x86_64:
+
+```bash
+./packaging/build-linux-executable.sh
+./dist/DC-Tuner-Studio-Linux-x86_64
+```
+
+El portable final se genera con `./packaging/build-linux.sh` y contiene el
+ejecutable ELF, recursos, definición Speeduino y documentación.
+
 ### Windows 10/11 x86_64
 
 Instala Python 3.11+ **de 64 bits** con Tcl/Tk y ejecuta:
@@ -87,6 +97,9 @@ En Windows:
 ```powershell
 .\packaging\build-windows.ps1
 ```
+
+El script de Windows exige Python x86_64 de 64 bits y debe ejecutarse en un
+Windows 10/11 real para producir un `.exe` nativo de Windows.
 
 ## Alcance del MVP
 
