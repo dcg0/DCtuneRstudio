@@ -2,7 +2,7 @@
 
 Aplicación de escritorio offline-first para diagnóstico, telemetría y edición de mapas de motor. Este primer MVP está construido con **Python + Tkinter**, por lo que puede ejecutarse en Windows y Linux sin instalar un framework UI adicional.
 
-> El modo simulador permite explorar el producto sin conectar un vehículo. Las operaciones de escritura ECU no están automatizadas en este MVP.
+> La aplicación no genera datos sintéticos: sin una ECU real conectada, los valores permanecen en blanco. Las operaciones de escritura ECU no están automatizadas en este MVP.
 
 ## Funciones incluidas
 
@@ -13,8 +13,8 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Velocímetro circular con escala 0–240 km/h, aguja y lectura digital.
 - Los dos instrumentos principales ocupan ahora la franja superior del panel para una lectura inmediata durante la conducción o el ajuste.
 - Indicador de **CV estimados siempre activo**, recalculado con cada muestra nueva de RPM, MAP y AFR; queda explícitamente marcado como estimación y no como medición de dinamómetro. La cilindrada y la eficiencia volumétrica son editables y quedan visibles junto al resultado; al desconectar conserva la última lectura calculada.
-- Simulador ECU integrado para demostraciones y pruebas seguras.
-- Detección de puertos USB cuando `pyserial` está instalado.
+- Transporte de hardware real por puertos USB/serie cuando `pyserial` está instalado.
+- Detección de puertos USB reales y descarte de tramas inválidas.
 - Transporte serie opcional con líneas CSV: `rpm,map,tps,clt,afr,battery`.
 - Carga y guardado de mapas `.MSQ` en JSON compatible con el formato DCTB.
 - Carga y guardado de `.BIN` binario de muestra DCTB.
@@ -46,7 +46,7 @@ Instala Python 3.11+ con Tcl/Tk y ejecuta:
 python dc_tuner_studio.py
 ```
 
-No se necesitan dependencias externas para el modo simulador. Para usar puertos serie reales:
+Para usar puertos serie reales:
 
 ```bash
 python -m pip install -r requirements-optional.txt
@@ -55,11 +55,12 @@ python -m pip install -r requirements-optional.txt
 ## Prueba segura
 
 1. Ejecuta la aplicación.
-2. Mantén seleccionado `SIMULATOR`.
-3. Pulsa **Conectar**.
-4. Abre el panel en vivo y el registro.
-5. Exporta CSV o PDF desde la pestaña de registro.
-6. Usa **Duplicar mapa** y **Comparar diferencias** para probar el editor.
+2. Conecta una ECU real y verifica el puerto detectado.
+3. Selecciona el perfil de firmware correcto.
+4. Pulsa **Conectar** y confirma que las tramas son válidas.
+5. Abre el panel en vivo y el registro.
+6. Exporta CSV o PDF desde la pestaña de registro.
+7. Usa **Duplicar mapa** y **Comparar diferencias** para preparar ajustes offline.
 
 En una conexión serie real selecciona primero el perfil ECU y después el puerto. El
 MVP espera una línea de telemetría normalizada con seis campos CSV:

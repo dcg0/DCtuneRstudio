@@ -10,7 +10,6 @@ from __future__ import annotations
 import csv
 import json
 import math
-import random
 import struct
 import threading
 import time
@@ -198,11 +197,10 @@ class EcuTransport:
         self.on_sample = on_sample
         self.protocol: ProtocolAdapter = PROTOCOLS["MegaSquirt / Microsquirt"]()
         self.connected = False
-        self.simulator = True
-        self.port = "SIMULATOR"
+        self.simulator = False
+        self.port = ""
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
-        self._phase = 0.0
 
     def set_protocol(self, protocol_name: str) -> None:
         if self.connected:
@@ -213,7 +211,7 @@ class EcuTransport:
         self.protocol = adapter()
 
     def available_ports(self) -> list[str]:
-        ports = ["SIMULATOR"]
+        ports: list[str] = []
         try:
             import serial.tools.list_ports  # type: ignore
             ports += [p.device for p in serial.tools.list_ports.comports()]
@@ -222,16 +220,16 @@ class EcuTransport:
         return ports
 
     def connect(self, port: str) -> None:
+        if not port:
+            raise RuntimeError("No hay un puerto ECU real seleccionado")
         self.port = port
-        self.simulator = port == "SIMULATOR"
-        if not self.simulator:
-            try:
-                import serial  # type: ignore
-                self._serial = serial.Serial(port, self.protocol.baudrate, timeout=0.5)
-            except ImportError as exc:
-                raise RuntimeError("Instala pyserial para usar puertos USB reales") from exc
-            except Exception as exc:
-                raise RuntimeError(f"No se pudo abrir {port}: {exc}") from exc
+        try:
+            import serial  # type: ignore
+            self._serial = serial.Serial(port, self.protocol.baudrate, timeout=0.5)
+        except ImportError as exc:
+            raise RuntimeError("Instala pyserial para usar puertos USB reales") from exc
+        except Exception as exc:
+            raise RuntimeError(f"No se pudo abrir {port}: {exc}") from exc
         self.connected = True
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True)
@@ -246,31 +244,18 @@ class EcuTransport:
 
     def _loop(self) -> None:
         while not self._stop.wait(0.25):
-            self._phase += 0.12
-            if self.simulator:
-                rpm = 850 + int(500 * (1 + math.sin(self._phase)) + random.random() * 120)
-                sample = {"rpm": rpm, "map": round(38 + 15 * math.sin(self._phase / 2), 1),
-                          "tps": round(18 + 12 * (1 + math.sin(self._phase * .7)), 1),
-                          "speed": round(42 + 18 * math.sin(self._phase / 2), 1),
-                          "clt": round(86 + 3 * math.sin(self._phase / 3), 1),
-                          "iat": round(34 + 2 * math.sin(self._phase / 2.5), 1),
-                          "afr": round(14.7 + .5 * math.sin(self._phase * .8), 2),
-                          "advance": round(12 + 5 * math.sin(self._phase / 2), 1),
-                          "pulse": round(2.8 + .5 * math.sin(self._phase), 2),
-                          "battery": round(13.8 + .15 * math.sin(self._phase), 2),
-                          "timestamp": time.time()}
-            else:
-                sample = self._read_serial_sample()
-            self.on_sample(sample)
+            sample = self._read_serial_sample()
+            if sample.get("valid"):
+                self.on_sample(sample)
 
     def _read_serial_sample(self) -> dict:
         line = self._serial.readline().decode(errors="ignore").strip()
         frame = self.protocol.parse_line(line)
         if frame is None:
-            return {key: 0 for key in ("rpm", "map", "tps", "speed", "clt", "iat", "afr", "advance", "pulse", "battery")} | {"timestamp": time.time()}
+            return {"valid": False, "timestamp": time.time()}
         result = {"rpm": frame.rpm, "map": frame.map_kpa, "tps": frame.tps, "speed": 0,
                   "clt": frame.clt, "iat": 0, "afr": frame.afr, "advance": 0,
-                  "pulse": 0, "battery": frame.battery}
+                  "pulse": 0, "battery": frame.battery, "valid": True}
         result["timestamp"] = time.time()
         return result
 
@@ -354,7 +339,7 @@ class App(tk.Tk):
         self.samples: list[dict] = []
         self.transport = EcuTransport(self.receive_sample)
         self.status_var = tk.StringVar(value="DESCONECTADO · modo seguro")
-        self.port_var = tk.StringVar(value="SIMULATOR")
+        self.port_var = tk.StringVar(value="")
         self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
         self.hover_var = tk.StringVar(value="Pasa el ratón sobre un dato para ver qué significa")
         self.displacement_var = tk.StringVar(value="2.0")
@@ -429,7 +414,7 @@ class App(tk.Tk):
         self.protocol_combo = ttk.Combobox(controls, textvariable=self.protocol_var, width=28, state="readonly", values=list(PROTOCOLS)); self.protocol_combo.pack(side="left", padx=5)
         self.port_combo = ttk.Combobox(controls, textvariable=self.port_var, width=18, state="readonly"); self.port_combo.pack(side="left", padx=5)
         Tooltip(self.protocol_combo, "Perfil de comunicación. Selecciona el firmware antes de conectar.")
-        Tooltip(self.port_combo, "Puerto USB/Bluetooth detectado. Usa SIMULATOR para practicar sin vehículo.")
+        Tooltip(self.port_combo, "Puerto USB/Bluetooth real detectado. Sin ECU conectada no se muestran valores.")
         refresh_button = ttk.Button(controls, text="Actualizar", command=self.refresh_ports); refresh_button.pack(side="left", padx=3)
         Tooltip(refresh_button, "Vuelve a buscar puertos serie conectados.")
         self.connect_btn = ttk.Button(controls, text="Conectar", command=self.toggle_connection); self.connect_btn.pack(side="left", padx=3)
@@ -443,7 +428,7 @@ class App(tk.Tk):
         self._build_live(); self._build_map(); self._build_log(); self._build_compare(); self._build_help()
         footer = tk.Frame(self, bg=COLORS["panel2"], height=28); footer.pack(fill="x", side="bottom"); footer.pack_propagate(False)
         tk.Label(footer, text="USB / ELM327 · MS1 / MS2 / MS3 · Microsquirt", bg=COLORS["panel2"], fg=COLORS["muted"]).pack(side="left", padx=14)
-        self.footer_var = tk.StringVar(value="Puerto: SIMULATOR   |   115200 baud   |   ECU: simulada")
+        self.footer_var = tk.StringVar(value="Puerto: sin ECU   |   115200 baud   |   esperando hardware real")
         tk.Label(footer, textvariable=self.footer_var, bg=COLORS["panel2"], fg=COLORS["silver"]).pack(side="right", padx=14)
         tk.Label(footer, textvariable=self.hover_var, bg=COLORS["panel2"], fg=COLORS["blue"], anchor="w").pack(side="left", padx=14, fill="x", expand=True)
 
@@ -473,7 +458,8 @@ REGISTRO Y DIAGNÓSTICO
 
 CONEXIONES
 • Speeduino, MegaSquirt/Microsquirt y ELM327 tienen perfiles separados.
-• Empieza siempre con SIMULATOR o modo lectura y verifica firmware, puerto y valores.
+• Solo se muestran valores recibidos de hardware real y tramas válidas.
+• Verifica firmware, puerto y valores antes de ajustar.
 • No hay escritura, burn ni prueba de actuadores automática en esta versión.
 
 SEGURIDAD
@@ -528,7 +514,7 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         tk.Label(hp_box, text="RPM + MAP + AFR · fórmula de flujo de aire", bg=COLORS["panel2"], fg=COLORS["muted"], font=("Arial", 7)).pack(anchor="w")
         Tooltip(hp_box, "Estimación orientativa usando RPM, MAP y AFR. Supuestos visibles: motor 2,0 L y 85% VE. No sustituye un dinamómetro.")
         self.quick_status = tk.Text(quick, height=12, width=32, bg=COLORS["panel"], fg=COLORS["silver"], relief="flat", state="disabled")
-        self.quick_status.pack(fill="both", expand=True); self._set_quick("Sistema listo.\n\nConsejos rápidos:\n• Cambia una zona cada vez.\n• Compara AFR con MAP y RPM.\n• Guarda una copia antes de ajustar.\n• Verifica CLT, IAT y batería.\n\nModo seguro: no se envía escritura ECU automáticamente.")
+        self.quick_status.pack(fill="both", expand=True); self._set_quick("Sin ECU conectada.\n\nNo se muestran datos inventados.\n\nConsejos rápidos:\n• Cambia una zona cada vez.\n• Compara AFR con MAP y RPM.\n• Guarda una copia antes de ajustar.\n• Verifica CLT, IAT y batería.\n\nModo lectura: no se envía escritura ECU automáticamente.")
 
     def _build_map(self) -> None:
         self.map_tab.columnconfigure(0, weight=1); self.map_tab.rowconfigure(0, weight=1)
@@ -586,18 +572,18 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
 
     def refresh_ports(self) -> None:
         ports = self.transport.available_ports(); self.port_combo["values"] = ports
-        if self.port_var.get() not in ports: self.port_var.set(ports[0])
+        if self.port_var.get() not in ports: self.port_var.set(ports[0] if ports else "")
 
     def toggle_connection(self) -> None:
         if self.transport.connected:
             self.transport.disconnect(); self.status_var.set("DESCONECTADO · modo seguro"); self.connect_btn.configure(text="Conectar"); self.connection_label.configure(fg=COLORS["muted"])
-            self._set_quick("Conexión cerrada.\n\nLos datos registrados permanecen disponibles para exportación.")
+            self._set_quick("Conexión cerrada.\n\nLos datos registrados permanecen disponibles para exportación.\n\nNo se generan datos sintéticos.")
             return
         try:
             self.transport.set_protocol(self.protocol_var.get())
             self.transport.connect(self.port_var.get())
             self.status_var.set(f"CONECTADO · {self.port_var.get()}"); self.connect_btn.configure(text="Desconectar"); self.connection_label.configure(fg=COLORS["green"])
-            self.footer_var.set(f"{self.protocol_var.get()}   |   {self.transport.protocol.baudrate} baud   |   ECU: {'simulada' if self.transport.simulator else 'serie'}")
+            self.footer_var.set(f"{self.protocol_var.get()}   |   {self.transport.protocol.baudrate} baud   |   ECU: hardware real")
         except RuntimeError as exc:
             messagebox.showerror("Conexión no disponible", str(exc))
 
