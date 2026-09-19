@@ -20,6 +20,7 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Carga y guardado de `.BIN` binario de muestra DCTB.
 - Visualización de superficie 3D pseudo-isométrica y curvas 2D sin dependencias externas.
 - Registro de telemetría con exportación CSV.
+- Gráficas dibujadas únicamente con muestras válidas de la ECU y frecuencia real calculada por marcas de tiempo de llegada.
 - Exportación PDF offline mediante el generador integrado.
 - Comparación de mapas celda a celda.
 - Tooltips al pasar el ratón por sensores y controles, con notas de interpretación.

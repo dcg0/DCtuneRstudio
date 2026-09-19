@@ -7,6 +7,7 @@ and recovery workflows are validated against hardware.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,8 @@ class ProtocolAdapter:
         try:
             values = [float(value) for value in parts[:6]]
         except ValueError:
+            return None
+        if not all(math.isfinite(value) for value in values):
             return None
         return TelemetryFrame(*values)
 

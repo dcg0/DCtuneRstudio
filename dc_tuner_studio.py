@@ -500,6 +500,8 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         Tooltip(self.tacho_gauge, "Tacómetro: RPM del motor. Zona roja desde 6.500 RPM en esta vista de demostración.")
         Tooltip(self.speed_gauge, "Velocímetro: velocidad estimada en km/h. La señal real depende del firmware y sensor disponible.")
         graph_card = self._card(self.live_tab, "TELEMETRÍA EN TIEMPO REAL · AFR / MAP", 4, 0); graph_card.grid(columnspan=2, sticky="nsew")
+        self.rate_var = tk.StringVar(value="Sin muestras ECU válidas")
+        tk.Label(graph_card, textvariable=self.rate_var, bg=COLORS["panel"], fg=COLORS["muted"], font=("Arial", 8)).pack(anchor="e", padx=8)
         self.live_canvas = tk.Canvas(graph_card, height=145, bg=COLORS["panel"], highlightthickness=0); self.live_canvas.pack(fill="both", expand=True)
         quick = self._card(self.live_tab, "ESTADO Y CONSEJOS DE AJUSTE", 4, 2)
         hp_box = tk.Frame(quick, bg=COLORS["panel2"], padx=10, pady=7); hp_box.pack(fill="x", pady=(0, 8))
@@ -617,10 +619,16 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
 
     def _draw_live_graph(self) -> None:
         canvas = self.live_canvas; canvas.delete("all"); width, height = max(1, canvas.winfo_width()), max(1, canvas.winfo_height())
+        recent = [sample for sample in self.samples[-100:] if math.isfinite(float(sample.get("timestamp", 0)))]
+        if len(recent) < 2:
+            self.rate_var.set("Sin frecuencia: se necesitan 2 muestras ECU válidas")
+            canvas.create_text(width / 2, height / 2, text="ESPERANDO DATOS REALES DE LA ECU", fill=COLORS["muted"], font=("Arial", 11, "bold"))
+            return
+        elapsed = recent[-1]["timestamp"] - recent[0]["timestamp"]
+        hz = (len(recent) - 1) / elapsed if elapsed > 0 else 0
+        self.rate_var.set(f"Frecuencia real de llegada: {hz:.2f} Hz · {len(recent)} muestras válidas")
         for y in range(4):
             yy = 20 + (height - 40) * y / 3; canvas.create_line(35, yy, width - 12, yy, fill=COLORS["grid"])
-        recent = self.samples[-100:]
-        if len(recent) < 2: return
         for key, color, low, high in (("rpm", COLORS["blue"], 500, 2500), ("afr", COLORS["red"], 10, 18), ("map", COLORS["green"], 20, 70)):
             points = []
             for i, sample in enumerate(recent):

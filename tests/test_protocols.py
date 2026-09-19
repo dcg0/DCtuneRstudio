@@ -17,6 +17,7 @@ class ProtocolTests(unittest.TestCase):
 
     def test_invalid_frame_is_ignored(self):
         self.assertIsNone(Elm327Adapter().parse_line("NO DATA"))
+        self.assertIsNone(Elm327Adapter().parse_line("1200,nan,18,86,14.7,13.8"))
 
 
 if __name__ == "__main__":
