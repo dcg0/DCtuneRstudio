@@ -20,6 +20,7 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
+from ini_loader import EcuDefinition, load_definition
 from protocols import PROTOCOLS, ProtocolAdapter
 
 APP_NAME = "DC TUNER STUDIO"
@@ -297,6 +298,7 @@ class App(tk.Tk):
         self.port_var = tk.StringVar(value="SIMULATOR")
         self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
         self.hover_var = tk.StringVar(value="Pasa el ratón sobre un dato para ver qué significa")
+        self.definition: Optional[EcuDefinition] = None
         self.view_var = tk.StringVar(value="3d")
         self._configure_style()
         self._build_menu()
@@ -341,6 +343,7 @@ class App(tk.Tk):
         menu = tk.Menu(self, tearoff=False, background=COLORS["panel"], foreground=COLORS["white"])
         file_menu = tk.Menu(menu, tearoff=False, background=COLORS["panel"], foreground=COLORS["white"])
         file_menu.add_command(label="Abrir mapa…", command=self.open_map)
+        file_menu.add_command(label="Cargar definición ECU (.ini)…", command=self.load_definition)
         file_menu.add_command(label="Guardar mapa…", command=self.save_map)
         file_menu.add_separator()
         file_menu.add_command(label="Exportar log CSV…", command=self.export_csv)
@@ -554,6 +557,20 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         try:
             self.map_a = MapData.load(Path(path)); self.map_name_var.set(self.map_a.name); self.surface.set_map(self.map_a, self.view_var.get()); self.notebook.select(self.map_tab)
         except (ValueError, OSError, json.JSONDecodeError) as exc: messagebox.showerror("Mapa no válido", str(exc))
+
+    def load_definition(self) -> None:
+        path = filedialog.askopenfilename(filetypes=(("Definición TunerStudio", "*.ini"), ("Todos", "*.*")))
+        if not path:
+            return
+        try:
+            self.definition = load_definition(Path(path))
+            signature = self.definition.signature or "firma no declarada"
+            version = self.definition.version or "versión no declarada"
+            self.status_var.set(f"DEFINICIÓN CARGADA · {signature}")
+            self.hover_var.set(f"Firmware: {signature} · versión: {version} · INI spec {self.definition.ini_spec_version or 'n/d'}")
+            self._set_quick(f"Definición ECU cargada.\n\nFirma: {signature}\nVersión: {version}\nSecciones: {len(self.definition.sections)}\n\nLa definición se usa para identificar el firmware; el transporte continúa en modo lectura.")
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Definición no válida", str(exc))
 
     def save_map(self) -> None:
         path = filedialog.asksaveasfilename(defaultextension=".msq", filetypes=(("DC Tuner MSQ", "*.msq"), ("DC Tuner BIN", "*.bin")))

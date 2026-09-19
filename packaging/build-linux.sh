@@ -6,11 +6,15 @@ rm -rf "$OUT"
 mkdir -p "$OUT"
 cp "$ROOT/dc_tuner_studio.py" "$OUT/"
 cp "$ROOT/protocols.py" "$OUT/"
+cp "$ROOT/ini_loader.py" "$OUT/"
 cp "$ROOT/README.md" "$OUT/"
+cp "$ROOT/THIRD_PARTY_NOTICES.md" "$OUT/"
 mkdir -p "$OUT/docs"
 cp "$ROOT/docs/TUNERSTUDIO_COMPATIBILITY.md" "$OUT/docs/"
 mkdir -p "$OUT/assets"
 cp "$ROOT/assets/dc-tuner-logo.gif" "$ROOT/assets/dc-tuner-cover.gif" "$OUT/assets/"
+mkdir -p "$OUT/assets/definitions"
+cp "$ROOT/assets/definitions/speeduino.ini" "$ROOT/assets/definitions/SPEEDUINO-LICENSE.txt" "$OUT/assets/definitions/"
 cat > "$OUT/run-dc-tuner-studio.sh" <<'RUNNER'
 #!/usr/bin/env bash
 set -euo pipefail

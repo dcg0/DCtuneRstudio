@@ -22,6 +22,7 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Reconexión y registro básico de errores de comunicación.
 - Selector de perfil para **Speeduino**, **MegaSquirt/Microsquirt** y **ELM327**.
 - Adaptadores de identificación y normalización de telemetría en modo solo lectura.
+- Importación de definiciones TunerStudio-style `.ini` para identificar firma, versión y secciones del firmware.
 
 ## Inicio rápido
 
@@ -58,6 +59,12 @@ python -m pip install -r requirements-optional.txt
 En una conexión serie real selecciona primero el perfil ECU y después el puerto. El
 MVP espera una línea de telemetría normalizada con seis campos CSV:
 `rpm,map,tps,clt,afr,battery`. La selección no habilita escritura ni flasheo.
+
+Puedes cargar una definición pública desde **Archivo → Cargar definición ECU (.ini)**.
+El proyecto incluye una referencia `speeduino.ini` bajo `assets/definitions/` y su
+licencia correspondiente. Las librerías propietarias de TunerStudio MS no se
+redistribuyen; se implementa un lector compatible de metadatos y se respetan las
+licencias de cada proyecto.
 
 ## Empaquetado
 
