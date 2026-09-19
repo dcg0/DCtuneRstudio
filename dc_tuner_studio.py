@@ -38,6 +38,21 @@ def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def estimate_horsepower(sample: dict, displacement_l: float = 2.0, ve: float = 0.85) -> float:
+    """Rough airflow-based estimate; not a dyno measurement.
+
+    Assumes a four-stroke engine, standard air density, and 0.50 lb/hp-hour
+    brake-specific fuel consumption. Without displacement/torque calibration,
+    this value is intentionally labeled as an estimate.
+    """
+    rpm = max(0.0, float(sample.get("rpm", 0)))
+    map_kpa = clamp(float(sample.get("map", 0)), 0, 150)
+    afr = clamp(float(sample.get("afr", 14.7)), 8, 25)
+    air_kg_min = (displacement_l * rpm / 2 / 1000) * 1.225 * (map_kpa / 101.325) * ve
+    air_lb_min = air_kg_min * 2.20462
+    return max(0.0, air_lb_min * 60 / (afr * 0.50))
+
+
 class Tooltip:
     """Small non-blocking hover note for dense tuning screens."""
     def __init__(self, widget: tk.Misc, text: str) -> None:
@@ -342,6 +357,8 @@ class App(tk.Tk):
         self.port_var = tk.StringVar(value="SIMULATOR")
         self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
         self.hover_var = tk.StringVar(value="Pasa el ratón sobre un dato para ver qué significa")
+        self.displacement_var = tk.StringVar(value="2.0")
+        self.ve_var = tk.StringVar(value="85")
         self.definition: Optional[EcuDefinition] = None
         self.view_var = tk.StringVar(value="3d")
         self._configure_style()
@@ -477,6 +494,7 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         self.live_tab.columnconfigure((0, 1, 2), weight=1)
         self.live_tab.rowconfigure(4, weight=1)
         self.metric_labels: dict[str, tk.Label] = {}
+        self.hp_value_label: Optional[tk.Label] = None
         self.tacho_gauge: Optional[RoundGauge] = None
         self.speed_gauge: Optional[RoundGauge] = None
         metrics = (("RPM", "rpm", "rpm", "#00A8FF", "Revoluciones del motor", "Vigila el ralentí y cambios bruscos."), ("MAP", "map", "kPa", "#00E060", "Presión absoluta del múltiple", "Indica la carga y el vacío del motor."), ("TPS", "tps", "%", "#F7B955", "Posición de mariposa", "Compárala con MAP y RPM al acelerar."), ("CLT", "clt", "°C", "#FF2020", "Temperatura de refrigerante", "Debe subir gradualmente; vigila sobrecalentamiento."), ("IAT", "iat", "°C", "#FF8A3D", "Temperatura de admisión", "Ayuda a interpretar densidad y compensación de combustible."), ("AFR", "afr", "AFR", "#C8C8C8", "Relación aire/combustible", "Compara con el objetivo y la carga del motor."), ("Avance", "advance", "°", "#B780FF", "Avance de encendido", "Observa estabilidad y cambios bajo carga."), ("Pulso iny.", "pulse", "ms", "#FF5CC8", "Tiempo de inyección", "Útil para detectar saturación o cambios de carga."), ("Batería", "battery", "V", "#38D6FF", "Voltaje de alimentación", "Una caída puede afectar la comunicación ECU."))
@@ -498,6 +516,17 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         graph_card = self._card(self.live_tab, "TELEMETRÍA EN TIEMPO REAL · AFR / MAP", 4, 0); graph_card.grid(columnspan=2, sticky="nsew")
         self.live_canvas = tk.Canvas(graph_card, height=145, bg=COLORS["panel"], highlightthickness=0); self.live_canvas.pack(fill="both", expand=True)
         quick = self._card(self.live_tab, "ESTADO Y CONSEJOS DE AJUSTE", 4, 2)
+        hp_box = tk.Frame(quick, bg=COLORS["panel2"], padx=10, pady=7); hp_box.pack(fill="x", pady=(0, 8))
+        tk.Label(hp_box, text="POTENCIA ESTIMADA · ACTIVA", bg=COLORS["panel2"], fg=COLORS["muted"], font=("Arial", 9, "bold")).pack(anchor="w")
+        self.hp_value_label = tk.Label(hp_box, text="— CV", bg=COLORS["panel2"], fg="#B780FF", font=("Arial", 24, "bold")); self.hp_value_label.pack(anchor="w")
+        hp_note = tk.Label(hp_box, text="ESTIMACIÓN · no es medición de banco", bg=COLORS["panel2"], fg=COLORS["amber"], font=("Arial", 8, "bold")); hp_note.pack(anchor="w")
+        assumptions = tk.Frame(hp_box, bg=COLORS["panel2"]); assumptions.pack(fill="x", pady=(5, 0))
+        tk.Label(assumptions, text="Cilindrada L", bg=COLORS["panel2"], fg=COLORS["muted"], font=("Arial", 8)).pack(side="left")
+        ttk.Entry(assumptions, textvariable=self.displacement_var, width=5).pack(side="left", padx=(4, 10))
+        tk.Label(assumptions, text="VE %", bg=COLORS["panel2"], fg=COLORS["muted"], font=("Arial", 8)).pack(side="left")
+        ttk.Entry(assumptions, textvariable=self.ve_var, width=5).pack(side="left", padx=4)
+        tk.Label(hp_box, text="RPM + MAP + AFR · fórmula de flujo de aire", bg=COLORS["panel2"], fg=COLORS["muted"], font=("Arial", 7)).pack(anchor="w")
+        Tooltip(hp_box, "Estimación orientativa usando RPM, MAP y AFR. Supuestos visibles: motor 2,0 L y 85% VE. No sustituye un dinamómetro.")
         self.quick_status = tk.Text(quick, height=12, width=32, bg=COLORS["panel"], fg=COLORS["silver"], relief="flat", state="disabled")
         self.quick_status.pack(fill="both", expand=True); self._set_quick("Sistema listo.\n\nConsejos rápidos:\n• Cambia una zona cada vez.\n• Compara AFR con MAP y RPM.\n• Guarda una copia antes de ajustar.\n• Verifica CLT, IAT y batería.\n\nModo seguro: no se envía escritura ECU automáticamente.")
 
@@ -580,6 +609,14 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         if self.samples:
             sample = self.samples[-1]
             for key, label in self.metric_labels.items(): label.configure(text=str(sample.get(key, "—")))
+            if self.hp_value_label:
+                try:
+                    displacement = float(self.displacement_var.get())
+                    ve = float(self.ve_var.get()) / 100
+                    estimate = estimate_horsepower(sample, displacement, ve) if displacement > 0 and 0 < ve <= 2 else None
+                except ValueError:
+                    estimate = None
+                self.hp_value_label.configure(text=f"{estimate:.0f} CV" if estimate is not None else "— CV")
             if self.tacho_gauge: self.tacho_gauge.set_value(sample.get("rpm", 0))
             if self.speed_gauge: self.speed_gauge.set_value(sample.get("speed", 0))
             if len(self.log_tree.get_children()) < len(self.samples):
