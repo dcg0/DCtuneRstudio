@@ -20,6 +20,8 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
+from protocols import PROTOCOLS, ProtocolAdapter
+
 APP_NAME = "DC TUNER STUDIO"
 VERSION = "0.1.0"
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
@@ -103,12 +105,21 @@ class EcuTransport:
     """Safe transport abstraction with a deterministic simulator fallback."""
     def __init__(self, on_sample: Callable[[dict], None]) -> None:
         self.on_sample = on_sample
+        self.protocol: ProtocolAdapter = PROTOCOLS["MegaSquirt / Microsquirt"]()
         self.connected = False
         self.simulator = True
         self.port = "SIMULATOR"
         self._thread: Optional[threading.Thread] = None
         self._stop = threading.Event()
         self._phase = 0.0
+
+    def set_protocol(self, protocol_name: str) -> None:
+        if self.connected:
+            raise RuntimeError("Desconecta antes de cambiar el protocolo")
+        adapter = PROTOCOLS.get(protocol_name)
+        if not adapter:
+            raise ValueError(f"Protocolo no soportado: {protocol_name}")
+        self.protocol = adapter()
 
     def available_ports(self) -> list[str]:
         ports = ["SIMULATOR"]
@@ -125,7 +136,7 @@ class EcuTransport:
         if not self.simulator:
             try:
                 import serial  # type: ignore
-                self._serial = serial.Serial(port, 115200, timeout=0.5)
+                self._serial = serial.Serial(port, self.protocol.baudrate, timeout=0.5)
             except ImportError as exc:
                 raise RuntimeError("Instala pyserial para usar puertos USB reales") from exc
             except Exception as exc:
@@ -159,12 +170,12 @@ class EcuTransport:
 
     def _read_serial_sample(self) -> dict:
         line = self._serial.readline().decode(errors="ignore").strip()
-        parts = [part.strip() for part in line.split(",")]
-        if len(parts) < 6:
+        frame = self.protocol.parse_line(line)
+        if frame is None:
             return {"rpm": 0, "map": 0, "tps": 0, "clt": 0, "afr": 0,
                     "battery": 0, "timestamp": time.time()}
-        names = ("rpm", "map", "tps", "clt", "afr", "battery")
-        result = {name: float(parts[i]) for i, name in enumerate(names)}
+        result = {"rpm": frame.rpm, "map": frame.map_kpa, "tps": frame.tps,
+                  "clt": frame.clt, "afr": frame.afr, "battery": frame.battery}
         result["timestamp"] = time.time()
         return result
 
@@ -249,6 +260,7 @@ class App(tk.Tk):
         self.transport = EcuTransport(self.receive_sample)
         self.status_var = tk.StringVar(value="DESCONECTADO · modo seguro")
         self.port_var = tk.StringVar(value="SIMULATOR")
+        self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
         self.view_var = tk.StringVar(value="3d")
         self._configure_style()
         self._build_menu()
@@ -317,6 +329,7 @@ class App(tk.Tk):
         right = tk.Frame(header, bg=COLORS["bg"]); right.pack(side="right", fill="y")
         self.connection_label = tk.Label(right, textvariable=self.status_var, bg=COLORS["bg"], fg=COLORS["muted"], font=("Arial", 10, "bold")); self.connection_label.pack(anchor="e")
         controls = tk.Frame(right, bg=COLORS["bg"]); controls.pack(anchor="e", pady=8)
+        self.protocol_combo = ttk.Combobox(controls, textvariable=self.protocol_var, width=28, state="readonly", values=list(PROTOCOLS)); self.protocol_combo.pack(side="left", padx=5)
         self.port_combo = ttk.Combobox(controls, textvariable=self.port_var, width=18, state="readonly"); self.port_combo.pack(side="left", padx=5)
         ttk.Button(controls, text="Actualizar", command=self.refresh_ports).pack(side="left", padx=3)
         self.connect_btn = ttk.Button(controls, text="Conectar", command=self.toggle_connection); self.connect_btn.pack(side="left", padx=3)
@@ -406,9 +419,10 @@ class App(tk.Tk):
             self._set_quick("Conexión cerrada.\n\nLos datos registrados permanecen disponibles para exportación.")
             return
         try:
+            self.transport.set_protocol(self.protocol_var.get())
             self.transport.connect(self.port_var.get())
             self.status_var.set(f"CONECTADO · {self.port_var.get()}"); self.connect_btn.configure(text="Desconectar"); self.connection_label.configure(fg=COLORS["green"])
-            self.footer_var.set(f"Puerto: {self.port_var.get()}   |   115200 baud   |   ECU: {'simulada' if self.transport.simulator else 'serie'}")
+            self.footer_var.set(f"{self.protocol_var.get()}   |   {self.transport.protocol.baudrate} baud   |   ECU: {'simulada' if self.transport.simulator else 'serie'}")
         except RuntimeError as exc:
             messagebox.showerror("Conexión no disponible", str(exc))
 

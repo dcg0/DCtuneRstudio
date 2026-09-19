@@ -18,6 +18,8 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Exportación PDF offline mediante el generador integrado.
 - Comparación de mapas celda a celda.
 - Reconexión y registro básico de errores de comunicación.
+- Selector de perfil para **Speeduino**, **MegaSquirt/Microsquirt** y **ELM327**.
+- Adaptadores de identificación y normalización de telemetría en modo solo lectura.
 
 ## Inicio rápido
 
@@ -51,6 +53,10 @@ python -m pip install -r requirements-optional.txt
 5. Exporta CSV o PDF desde la pestaña de registro.
 6. Usa **Duplicar mapa** y **Comparar diferencias** para probar el editor.
 
+En una conexión serie real selecciona primero el perfil ECU y después el puerto. El
+MVP espera una línea de telemetría normalizada con seis campos CSV:
+`rpm,map,tps,clt,afr,battery`. La selección no habilita escritura ni flasheo.
+
 ## Empaquetado
 
 Los scripts de `packaging/` preparan una distribución portable. El instalador final debe construirse en el sistema objetivo para incluir el runtime correcto:
@@ -67,7 +73,7 @@ En Windows:
 
 ## Alcance del MVP
 
-El formato `.MSQ` real de MegaSquirt y los protocolos específicos MS1/MS2/MS3/Microsquirt requieren adaptadores y fixtures de protocolo validados contra hardware. El MVP usa un formato JSON explícito para mapas y un BIN binario de muestra, evitando fingir compatibilidad con archivos ECU que todavía no han sido validados.
+Los perfiles Speeduino, MegaSquirt/Microsquirt y ELM327 ya están separados como adaptadores de protocolo, pero la compatibilidad binaria completa y el formato `.MSQ` real requieren fixtures y validación contra hardware y firmware concretos. El MVP usa un formato JSON explícito para mapas y un BIN binario de muestra, evitando fingir compatibilidad con archivos ECU que todavía no han sido validados.
 
 Antes de implementar escritura física se deben añadir: backup automático, validación de checksum, modo solo lectura, confirmación del dispositivo, rollback, cancelación segura y simuladores de ECU.
 
