@@ -4,83 +4,59 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="DC TUNER STUDIO para MegaSquirt en red local">
   <title>DC TUNER STUDIO</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="splashScreen" class="splash-screen" role="dialog" aria-label="Iniciando DC TUNER STUDIO">
+    <img src="splash.png" alt="ROJO Tuner Studio" class="splash-image">
+    <div class="splash-overlay"><div class="splash-title">DC TUNER STUDIO</div><div class="splash-loading"><span></span></div><div class="splash-caption">INICIANDO ESTUDIO DE CALIBRACIÓN</div></div>
+  </div>
+
   <header class="topbar">
-    <div class="brand" aria-label="DC TUNER STUDIO">
-      <span class="brand-dc">DC</span><span class="brand-tuner">TUN<span class="red-letter">E</span>R</span><span class="brand-studio">STUDIO</span>
-    </div>
-    <div class="header-status">
-      <span id="connectionDot" class="status-dot offline"></span>
-      <span id="connectionText">SIN CONEXIÓN</span>
-      <span class="separator">|</span>
-      <span id="clock">--:--:--</span>
-    </div>
+    <div class="brand" aria-label="DC TUNER STUDIO"><span class="brand-dc">DC</span><span class="brand-tuner">TUN<span class="red-letter">E</span>R</span><span class="brand-studio">STUDIO</span></div>
+    <nav class="menu-bar" aria-label="Menú principal">
+      <button class="menu-item" data-menu="archivo">Archivo</button><button class="menu-item" data-menu="edicion">Edición</button><button class="menu-item" data-menu="ver">Ver</button><button class="menu-item" data-menu="ecu">ECU</button><button class="menu-item" data-menu="herramientas">Herramientas</button><button class="menu-item" data-menu="ayuda">Ayuda</button>
+    </nav>
+    <div class="header-status"><span id="connectionDot" class="status-dot offline"></span><span id="connectionText">SIN CONEXIÓN</span><span class="separator">|</span><span id="clock">--:--:--</span></div>
   </header>
 
   <main class="shell">
+    <div class="workspace-tabs" role="tablist" aria-label="Espacios de trabajo">
+      <button class="workspace-tab active" data-target="dashboardView">Panel principal</button><button class="workspace-tab" data-target="tuneView">Ajuste</button><button class="workspace-tab" data-target="diagnosticsView">Diagnóstico</button><button class="workspace-tab" data-target="logsView">Registro y análisis</button><button class="workspace-tab" data-target="settingsView">Configuración</button>
+    </div>
     <div class="notice" id="safetyNotice"><strong>MODO SEGURO:</strong> el simulador no envía comandos a la ECU. Antes de trabajar con el vehículo, conecta por USB, selecciona el puerto y verifica la lectura.</div>
 
-    <section class="toolbar panel-card" aria-label="Controles de sesión">
-      <div class="toolbar-group">
-        <label for="modeSelect">Fuente</label>
-        <select id="modeSelect"><option value="true">Simulador</option><option value="false">ECU por serie</option></select>
-      </div>
-      <div class="toolbar-group">
-        <label for="portSelect">Puerto</label>
-        <select id="portSelect"><option>/dev/ttyUSB0</option><option>/dev/ttyUSB1</option><option>/dev/ttyACM0</option><option>/dev/ttyACM1</option></select>
-      </div>
-      <div class="toolbar-group">
-        <label for="baudSelect">Velocidad</label>
-        <select id="baudSelect"><option>115200</option><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>230400</option></select>
-      </div>
-      <button class="button primary" id="connectButton">CONECTAR</button>
-      <span class="toolbar-spacer"></span>
-      <button class="button" id="recordButton">● GRABAR</button>
-      <a class="button" href="/api/export/current.csv">EXPORTAR CSV</a>
+    <section id="dashboardView" class="workspace-view active-view">
+      <section class="toolbar panel-card" aria-label="Controles de conexión">
+        <div class="toolbar-group"><label for="modeSelect">Fuente de datos</label><select id="modeSelect"><option value="true">Simulador seguro</option><option value="false">ECU por serie</option></select></div>
+        <div class="toolbar-group"><label for="portSelect">Puerto USB</label><select id="portSelect"><option>/dev/ttyUSB0</option><option>/dev/ttyUSB1</option><option>/dev/ttyACM0</option><option>/dev/ttyACM1</option></select></div>
+        <div class="toolbar-group"><label for="baudSelect">Velocidad</label><select id="baudSelect"><option>115200</option><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>230400</option></select></div>
+        <button class="button primary" id="connectButton">CONECTAR ECU</button><span class="toolbar-spacer"></span><button class="button" id="recordButton">● GRABAR</button><a class="button" href="/api/export/current.csv">EXPORTAR CSV</a>
+      </section>
+      <section class="grid gauges-grid" aria-label="Medidores en vivo">
+        <article class="gauge-card panel-card accent-blue"><div class="gauge-label">RPM</div><div class="gauge-value" id="rpm">0</div><div class="gauge-unit">rev/min</div><div class="bar"><span id="rpmBar"></span></div><div class="gauge-extremes">PICO <b id="rpmPeak">0</b> · MÍN <b id="rpmMin">0</b></div></article>
+        <article class="gauge-card panel-card accent-red"><div class="gauge-label">AFR</div><div class="gauge-value" id="afr">0.0</div><div class="gauge-unit">relación aire/combustible</div><div class="bar"><span id="afrBar"></span></div><div class="gauge-extremes">OBJETIVO <b>14.7</b></div></article>
+        <article class="gauge-card panel-card accent-green"><div class="gauge-label">TEMPERATURA CLT</div><div class="gauge-value" id="temperature">0</div><div class="gauge-unit">°C</div><div class="bar"><span id="temperatureBar"></span></div><div class="gauge-extremes">LÍMITE <b>105 °C</b></div></article>
+        <article class="gauge-card panel-card accent-blue"><div class="gauge-label">PRESIÓN MAP</div><div class="gauge-value" id="pressure">0</div><div class="gauge-unit">kPa</div><div class="bar"><span id="pressureBar"></span></div><div class="gauge-extremes">RANGO <b>20–250</b></div></article>
+        <article class="gauge-card panel-card accent-blue"><div class="gauge-label">CARGA DEL MOTOR</div><div class="gauge-value" id="load">0</div><div class="gauge-unit">%</div><div class="bar"><span id="loadBar"></span></div><div class="gauge-extremes">TPS <b id="throttle">0 %</b></div></article>
+        <article class="gauge-card panel-card accent-red"><div class="gauge-label">AVANCE DE ENCENDIDO</div><div class="gauge-value" id="advance">0</div><div class="gauge-unit">° antes del PMS</div><div class="bar"><span id="advanceBar"></span></div><div class="gauge-extremes">VOLTAJE <b id="voltage">0.0 V</b></div></article>
+      </section>
+      <section class="grid lower-grid"><article class="panel-card chart-card"><div class="card-heading"><div><span class="eyebrow">TELEMETRÍA EN VIVO</span><h2>Señales del motor</h2></div><div class="legend"><span><i class="legend-line blue"></i>RPM</span><span><i class="legend-line red"></i>AFR × 100</span></div></div><canvas id="telemetryChart" width="900" height="280" aria-label="Gráfica de telemetría"></canvas></article><article class="panel-card diagnostics-card"><div class="card-heading"><div><span class="eyebrow">ESTADO</span><h2>Salud del sistema</h2></div><span id="healthBadge" class="badge">ESPERANDO</span></div><dl class="status-list"><div><dt>Fuente</dt><dd id="sourceStatus">—</dd></div><div><dt>Puerto USB</dt><dd id="portStatus">—</dd></div><div><dt>Última trama</dt><dd id="frameStatus">—</dd></div><div><dt>Registro</dt><dd id="recordStatus">INACTIVO</dd></div></dl><div class="button-row"><button class="button" id="clearPeaksButton">REINICIAR PICOS</button><button class="button" id="refreshButton">ACTUALIZAR</button></div></article></section>
     </section>
 
-    <section class="grid gauges-grid" aria-label="Medidores en vivo">
-      <article class="gauge-card panel-card accent-blue"><div class="gauge-label">RPM</div><div class="gauge-value" id="rpm">0</div><div class="gauge-unit">rev/min</div><div class="bar"><span id="rpmBar"></span></div><div class="gauge-extremes">PICO <b id="rpmPeak">0</b> · MÍN <b id="rpmMin">0</b></div></article>
-      <article class="gauge-card panel-card accent-red"><div class="gauge-label">AFR</div><div class="gauge-value" id="afr">0.0</div><div class="gauge-unit">relación aire/comb.</div><div class="bar"><span id="afrBar"></span></div><div class="gauge-extremes">OBJETIVO <b>14.7</b></div></article>
-      <article class="gauge-card panel-card accent-green"><div class="gauge-label">TEMPERATURA</div><div class="gauge-value" id="temperature">0</div><div class="gauge-unit">°C · CLT</div><div class="bar"><span id="temperatureBar"></span></div><div class="gauge-extremes">LÍMITE <b>105 °C</b></div></article>
-      <article class="gauge-card panel-card accent-blue"><div class="gauge-label">PRESIÓN MAP</div><div class="gauge-value" id="pressure">0</div><div class="gauge-unit">kPa</div><div class="bar"><span id="pressureBar"></span></div><div class="gauge-extremes">RANGO <b>20–250</b></div></article>
-      <article class="gauge-card panel-card accent-blue"><div class="gauge-label">CARGA</div><div class="gauge-value" id="load">0</div><div class="gauge-unit">%</div><div class="bar"><span id="loadBar"></span></div><div class="gauge-extremes">TPS <b id="throttle">0 %</b></div></article>
-      <article class="gauge-card panel-card accent-red"><div class="gauge-label">AVANCE</div><div class="gauge-value" id="advance">0</div><div class="gauge-unit">° antes del PMS</div><div class="bar"><span id="advanceBar"></span></div><div class="gauge-extremes">VOLT <b id="voltage">0.0 V</b></div></article>
-    </section>
+    <section id="tuneView" class="workspace-view"><section class="panel-card map-card" aria-label="Editor de mapas"><div class="card-heading"><div><span class="eyebrow">TABLAS DE AJUSTE · MSQ / BIN</span><h2>Editor local de mapas</h2></div><span id="mapFileStatus" class="badge">SIN ARCHIVO</span></div><div class="map-toolbar"><label class="file-button button">CARGAR MAPA<input id="mapFileInput" type="file" accept=".msq,.MSQ,.bin,.BIN,.csv,.json"></label><label class="file-button button">COMPARAR<input id="mapCompareFile" type="file" accept=".msq,.MSQ,.bin,.BIN,.csv,.json"></label><button class="button" id="mapSaveButton">GUARDAR COPIA</button><button class="button" id="mapUndoButton">DESHACER</button><button class="button" id="mapRedoButton">REHACER</button><span class="muted" id="mapDiffStatus">Edición en el navegador; no se escribe en la ECU.</span></div><div class="map-subtabs"><button class="subtab active">Tabla VE</button><button class="subtab">Tabla de chispa</button><button class="subtab">Arranque</button><button class="subtab">Ralentí</button><button class="subtab">Correcciones</button></div><div class="map-workspace"><div class="map-grid-scroll"><div id="mapGrid" class="map-grid"></div></div><canvas id="map3d" width="500" height="260" aria-label="Vista 3D del mapa"></canvas></div></section></section>
 
-    <section class="panel-card map-card" aria-label="Editor de mapas">
-      <div class="card-heading"><div><span class="eyebrow">MAPAS · MSQ / BIN</span><h2>Editor local de tabla 16 × 16</h2></div><span id="mapFileStatus" class="badge">SIN ARCHIVO</span></div>
-      <div class="map-toolbar">
-        <label class="file-button button">CARGAR MAPA<input id="mapFileInput" type="file" accept=".msq,.MSQ,.bin,.BIN,.csv,.json"></label>
-        <label class="file-button button">COMPARAR<input id="mapCompareFile" type="file" accept=".msq,.MSQ,.bin,.BIN,.csv,.json"></label>
-        <button class="button" id="mapSaveButton">GUARDAR</button><button class="button" id="mapUndoButton">DESHACER</button><button class="button" id="mapRedoButton">REHACER</button>
-        <span class="muted" id="mapDiffStatus">Edición en el navegador; no se escribe en la ECU.</span>
-      </div>
-      <div class="map-workspace"><div class="map-grid-scroll"><div id="mapGrid" class="map-grid"></div></div><canvas id="map3d" width="500" height="260" aria-label="Vista 3D del mapa"></canvas></div>
-    </section>
+    <section id="diagnosticsView" class="workspace-view"><div class="feature-grid"><article class="panel-card feature-card"><span class="feature-icon">DTC</span><h2>Códigos de diagnóstico</h2><p>Leer, guardar y borrar códigos DTC cuando el perfil de la ECU esté conectado.</p><button class="button" data-not-ready="Lectura DTC disponible al conectar un perfil de ECU">LEER CÓDIGOS</button></article><article class="panel-card feature-card"><span class="feature-icon">I/O</span><h2>Pruebas de actuadores</h2><p>Pruebas controladas de salidas, relés e inyectores con confirmación de seguridad.</p><button class="button" data-not-ready="Las pruebas de actuadores están bloqueadas en modo simulación">ABRIR PRUEBAS</button></article><article class="panel-card feature-card"><span class="feature-icon">CAL</span><h2>Calibración de sensores</h2><p>Calibración de TPS, temperatura, presión y entradas analógicas.</p><button class="button" data-not-ready="Conecta una ECU para comenzar una calibración">CALIBRAR</button></article><article class="panel-card feature-card"><span class="feature-icon">COM</span><h2>Terminal de comandos</h2><p>Terminal directa con registro de respuestas y bloqueo cuando no hay ECU.</p><button class="button" data-target="terminalCard">IR A TERMINAL</button></article></div></section>
 
-    <section class="grid lower-grid">
-      <article class="panel-card chart-card">
-        <div class="card-heading"><div><span class="eyebrow">TELEMETRÍA</span><h2>Señales en tiempo real</h2></div><div class="legend"><span><i class="legend-line blue"></i>RPM</span><span><i class="legend-line red"></i>AFR × 100</span></div></div>
-        <canvas id="telemetryChart" width="900" height="280" aria-label="Gráfica de telemetría"></canvas>
-      </article>
-      <article class="panel-card diagnostics-card">
-        <div class="card-heading"><div><span class="eyebrow">DIAGNÓSTICO</span><h2>Estado del sistema</h2></div><span id="healthBadge" class="badge">ESPERANDO</span></div>
-        <dl class="status-list"><div><dt>Fuente</dt><dd id="sourceStatus">—</dd></div><div><dt>Puerto USB</dt><dd id="portStatus">—</dd></div><div><dt>Última trama</dt><dd id="frameStatus">—</dd></div><div><dt>Registro</dt><dd id="recordStatus">INACTIVO</dd></div></dl>
-        <div class="button-row"><button class="button" id="clearPeaksButton">REINICIAR PICOS</button><button class="button" id="refreshButton">ACTUALIZAR</button></div>
-      </article>
-    </section>
+    <section id="logsView" class="workspace-view"><div class="grid bottom-grid"><article class="panel-card logs-card"><div class="card-heading"><div><span class="eyebrow">REGISTROS LOCALES</span><h2>Sesiones y reproducción</h2></div><button class="button small" id="reloadLogsButton">RECARGAR</button></div><div id="logsList" class="logs-list"><span class="muted">No hay registros todavía.</span></div><div class="playback-controls"><button class="button" data-not-ready="Selecciona un registro CSV para reproducirlo">REPRODUCIR</button><input type="range" min="0" max="100" value="0" aria-label="Posición de reproducción"><span class="muted">00:00:00</span></div></article><article id="terminalCard" class="panel-card terminal-card"><div class="card-heading"><div><span class="eyebrow">TERMINAL ECU</span><h2>Comandos directos</h2></div><span class="muted">Solo en modo serie</span></div><div class="terminal-output" id="terminalOutput">Listo. Los comandos se envían únicamente cuando la ECU está conectada.</div><form id="commandForm" class="command-form"><input id="commandInput" autocomplete="off" placeholder="Ejemplo: status" maxlength="120"><button class="button primary" type="submit">ENVIAR</button></form></article></div></section>
 
-    <section class="grid bottom-grid">
-      <article class="panel-card logs-card"><div class="card-heading"><div><span class="eyebrow">REGISTROS</span><h2>Sesiones locales</h2></div><button class="button small" id="reloadLogsButton">RECARGAR</button></div><div id="logsList" class="logs-list"><span class="muted">No hay registros todavía.</span></div></article>
-      <article class="panel-card terminal-card"><div class="card-heading"><div><span class="eyebrow">TERMINAL ECU</span><h2>Comandos</h2></div><span class="muted">Solo en modo serie</span></div><div class="terminal-output" id="terminalOutput">Listo. Los comandos se envían únicamente cuando la ECU está conectada.</div><form id="commandForm" class="command-form"><input id="commandInput" autocomplete="off" placeholder="Ejemplo: status" maxlength="120"><button class="button primary" type="submit">ENVIAR</button></form></article>
-    </section>
+    <section id="settingsView" class="workspace-view"><div class="settings-grid"><article class="panel-card settings-card"><span class="eyebrow">PROYECTO</span><h2>Configuración del vehículo</h2><label>Nombre del proyecto<input value="Mi proyecto MegaSquirt"></label><label>Familia ECU<select><option>MegaSquirt MS1</option><option>MegaSquirt MS2</option><option>MegaSquirt MS3</option><option>MicroSquirt</option></select></label><label>Idioma<select><option>Español</option><option>English</option></select></label></article><article class="panel-card settings-card"><span class="eyebrow">INTERFAZ</span><h2>Preferencias</h2><label><input type="checkbox" checked> Interfaz oscura</label><label><input type="checkbox" checked> Mostrar alertas de umbral</label><label><input type="checkbox" checked> Confirmar comandos peligrosos</label><p class="muted">Los cambios de configuración son locales a este navegador.</p></article></div></section>
 
-    <footer class="footer"><span>DC TUNER STUDIO · Debian 12 i386 · red local únicamente</span><span>API local: <a href="/api/health">/api/health</a></span></footer>
+    <footer class="footer"><span>DC TUNER STUDIO · Debian 12 i386 · interfaz oscura · español</span><span>API local: <a href="/api/health">/api/health</a></span></footer>
   </main>
+  <div id="toast" class="toast" role="status"></div>
   <script src="panel.js"></script>
 </body>
 </html>

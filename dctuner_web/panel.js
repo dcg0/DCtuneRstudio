@@ -5,6 +5,23 @@
   const number = (value, digits = 0) => Number.isFinite(Number(value)) ? Number(value).toFixed(digits) : "0";
   const setText = (id, value) => { const node = $(id); if (node) node.textContent = value; };
   const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
+  let toastTimer;
+  function showToast(message) { const toast = $("toast"); if (!toast) return; toast.textContent = message; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3200); }
+
+  function activateView(id) {
+    document.querySelectorAll(".workspace-view").forEach((view) => view.classList.toggle("active-view", view.id === id));
+    document.querySelectorAll(".workspace-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.target === id));
+    if (id === "dashboardView") setTimeout(drawChart, 0);
+    if (id === "tuneView") setTimeout(mapDraw3D, 0);
+  }
+  document.querySelectorAll(".workspace-tab").forEach((tab) => tab.addEventListener("click", () => activateView(tab.dataset.target)));
+  document.querySelectorAll(".menu-item").forEach((item) => item.addEventListener("click", () => showToast(`${item.textContent}: usa las pestañas de trabajo para abrir esta sección.`)));
+  document.querySelectorAll("[data-not-ready]").forEach((button) => button.addEventListener("click", () => showToast(button.dataset.notReady)));
+  document.querySelectorAll(".subtab").forEach((tab) => tab.addEventListener("click", () => { document.querySelectorAll(".subtab").forEach((other) => other.classList.remove("active")); tab.classList.add("active"); showToast(`${tab.textContent}: tabla lista para cargar un archivo de mapa.`); }));
+  document.querySelectorAll("[data-target='terminalCard']").forEach((button) => button.addEventListener("click", () => { activateView("logsView"); setTimeout(() => $("terminalCard").scrollIntoView({ behavior: "smooth", block: "center" }), 0); }));
+
+  const splash = $("splashScreen");
+  if (splash) window.setTimeout(() => splash.classList.add("hidden"), 2600);
 
   function updateClock() { setText("clock", new Date().toLocaleTimeString("es-MX", { hour12: false })); }
   setInterval(updateClock, 1000); updateClock();

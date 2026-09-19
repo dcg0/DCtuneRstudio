@@ -4,6 +4,8 @@
 
 > **Importante:** la interfaz arranca en modo simulación para que puedas comprobar la red y el panel sin enviar nada al vehículo. Activa el modo serie solamente después de verificar el puerto USB, la velocidad y la instalación eléctrica.
 
+Al abrirse, el programa muestra como portada splash la imagen `dctuner_web/splash.png` proporcionada para este proyecto. Después de la entrada inicial, la interfaz queda en **tema oscuro** y **español** de forma predeterminada. La navegación incluye Panel principal, Ajuste, Diagnóstico, Registro y análisis, y Configuración.
+
 ## Arquitectura de acceso
 
 El paquete ofrece dos formas de trabajo desde navegador:
