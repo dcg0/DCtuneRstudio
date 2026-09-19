@@ -312,6 +312,7 @@ class App(tk.Tk):
         file_menu.add_separator(); file_menu.add_command(label="Salir", command=self.destroy)
         menu.add_cascade(label="Archivo", menu=file_menu)
         menu.add_command(label="Conexión", command=self.toggle_connection)
+        menu.add_command(label="Manual y funciones", command=lambda: self.notebook.select(self.help_tab))
         menu.add_command(label="Ayuda", command=self.show_about)
         self.config(menu=menu)
 
@@ -336,14 +337,52 @@ class App(tk.Tk):
 
     def _build_body(self) -> None:
         self.notebook = ttk.Notebook(self); self.notebook.pack(fill="both", expand=True, padx=18, pady=(0, 10))
-        self.live_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.map_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.log_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.compare_tab = tk.Frame(self.notebook, bg=COLORS["bg"])
-        for tab, label in ((self.live_tab, "PANEL EN VIVO"), (self.map_tab, "EDITOR DE MAPAS"), (self.log_tab, "REGISTRO Y ANÁLISIS"), (self.compare_tab, "COMPARAR MAPAS")):
+        self.live_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.map_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.log_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.compare_tab = tk.Frame(self.notebook, bg=COLORS["bg"]); self.help_tab = tk.Frame(self.notebook, bg=COLORS["bg"])
+        for tab, label in ((self.live_tab, "PANEL EN VIVO"), (self.map_tab, "EDITOR DE MAPAS"), (self.log_tab, "REGISTRO Y ANÁLISIS"), (self.compare_tab, "COMPARAR MAPAS"), (self.help_tab, "MANUAL Y FUNCIONES")):
             self.notebook.add(tab, text=label)
-        self._build_live(); self._build_map(); self._build_log(); self._build_compare()
+        self._build_live(); self._build_map(); self._build_log(); self._build_compare(); self._build_help()
         footer = tk.Frame(self, bg=COLORS["panel2"], height=28); footer.pack(fill="x", side="bottom"); footer.pack_propagate(False)
         tk.Label(footer, text="USB / ELM327 · MS1 / MS2 / MS3 · Microsquirt", bg=COLORS["panel2"], fg=COLORS["muted"]).pack(side="left", padx=14)
         self.footer_var = tk.StringVar(value="Puerto: SIMULATOR   |   115200 baud   |   ECU: simulada")
         tk.Label(footer, textvariable=self.footer_var, bg=COLORS["panel2"], fg=COLORS["silver"]).pack(side="right", padx=14)
+
+    def _build_help(self) -> None:
+        self.help_tab.rowconfigure(1, weight=1); self.help_tab.columnconfigure(0, weight=1)
+        tk.Label(self.help_tab, text="MANUAL INTEGRADO · MODELO TUNERSTUDIO MS", bg=COLORS["bg"], fg=COLORS["blue"], font=("Arial", 15, "bold")).grid(row=0, column=0, sticky="w", padx=14, pady=(14, 5))
+        manual = tk.Text(self.help_tab, wrap="word", bg=COLORS["panel"], fg=COLORS["silver"], insertbackground=COLORS["white"], relief="flat", padx=18, pady=16)
+        manual.grid(row=1, column=0, sticky="nsew", padx=8, pady=8)
+        manual.insert("1.0", """DC TUNER STUDIO
+=================
+
+Este manual resume el modelo de trabajo documentado públicamente para TunerStudio MS y explica cómo se incorpora en DC TUNER STUDIO.
+
+PANEL EN VIVO Y DASHBOARDS
+• Vistas por pestañas, gauges seleccionables y pantalla completa.
+• Próxima fase: diseñador drag-and-drop, dashboards guardables y canales runtime desde archivos de definición ECU.
+
+MAPAS Y AJUSTE
+• Tablas 2D/3D, comparación de mapas, targeting de celdas y edición offline.
+• Próxima fase: VE Analyze con filtros, heatmap, hit counts, authority limits y propuesta de cambios.
+• Los cambios deberán guardarse como restore point antes de escribir.
+
+REGISTRO Y DIAGNÓSTICO
+• Registro en vivo, perfiles de canales, condiciones de inicio/parada y reproducción.
+• Loggers de trigger/tooth/composite/sync dependen del firmware y de su definición.
+• DTC no es universal: se implementará por adaptador ECU, nunca como comando genérico.
+
+CONEXIONES
+• Speeduino, MegaSquirt/Microsquirt y ELM327 tienen perfiles separados.
+• Empieza siempre con SIMULATOR o modo lectura y verifica firmware, puerto y valores.
+• No hay escritura, burn ni prueba de actuadores automática en esta versión.
+
+SEGURIDAD
+Antes de habilitar escritura: backup, checksum, confirmación de dispositivo, cancelación, registro de bytes y recuperación.
+Para pruebas de actuadores, sigue la documentación del firmware y desconecta el ECU del vehículo cuando corresponda.
+
+Documentación ampliada: docs/TUNERSTUDIO_COMPATIBILITY.md
+Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de Speeduino.
+""")
+        manual.configure(state="disabled")
 
     def _card(self, parent: tk.Misc, title: str, row: int, col: int) -> tk.LabelFrame:
         card = tk.LabelFrame(parent, text=title, bg=COLORS["panel"], fg=COLORS["blue"], font=("Arial", 10, "bold"), padx=12, pady=10, bd=0)

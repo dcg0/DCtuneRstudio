@@ -7,6 +7,8 @@ mkdir -p "$OUT"
 cp "$ROOT/dc_tuner_studio.py" "$OUT/"
 cp "$ROOT/protocols.py" "$OUT/"
 cp "$ROOT/README.md" "$OUT/"
+mkdir -p "$OUT/docs"
+cp "$ROOT/docs/TUNERSTUDIO_COMPATIBILITY.md" "$OUT/docs/"
 mkdir -p "$OUT/assets"
 cp "$ROOT/assets/dc-tuner-logo.gif" "$ROOT/assets/dc-tuner-cover.gif" "$OUT/assets/"
 cat > "$OUT/run-dc-tuner-studio.sh" <<'RUNNER'
