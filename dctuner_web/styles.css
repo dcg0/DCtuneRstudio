@@ -83,6 +83,18 @@ select:focus, input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px rgb
 .bottom-grid { grid-template-columns: 1fr 1fr; margin-top: 16px; }
 .chart-card, .diagnostics-card, .logs-card, .terminal-card { padding: 16px; }
 .map-card { margin-top: 16px; padding: 16px; }
+.log-import { padding: 16px; margin-bottom: 16px; }
+.log-toolbar, .log-options { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; }
+.log-toolbar { margin-bottom: 14px; }
+.log-options { padding-top: 13px; border-top: 1px solid #20282e; }
+.log-options label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 10px; min-width: 92px; }
+.log-options label:last-child { flex: 1 1 260px; }
+.log-options input, .log-options select { min-height: 34px; width: 100%; padding: 7px; }
+.log-analysis-grid { grid-template-columns: 2fr 1fr; margin-bottom: 16px; }
+.log-chart-card, .ve-card { padding: 16px; }
+#logChart { display: block; width: 100%; height: 320px; border: 1px solid #1d2429; background: #090b0d; }
+.ve-summary { min-height: 70px; padding: 12px; border: 1px solid #20282e; background: #0b0f12; color: var(--silver); line-height: 1.5; }
+.ve-results { margin-top: 12px; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .map-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 13px; }
 .file-button { position: relative; overflow: hidden; }
 .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -131,5 +143,5 @@ h2 { margin: 4px 0 0; font-size: 17px; font-weight: 600; }
 .command-form { display: flex; gap: 8px; margin-top: 10px; }
 .command-form input { flex: 1; min-width: 0; font-family: monospace; }
 .footer { display: flex; justify-content: space-between; gap: 10px; padding: 20px 0 0; color: #65717a; font-size: 10px; letter-spacing: .04em; }
-@media (max-width: 1100px) { .gauges-grid { grid-template-columns: repeat(3, 1fr); } .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1100px) { .gauges-grid { grid-template-columns: repeat(3, 1fr); } .feature-grid { grid-template-columns: repeat(2, 1fr); } .log-analysis-grid { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .topbar { padding: 0 14px; flex-wrap: wrap; } .header-status { font-size: 9px; } .brand { gap: 5px; } .brand-dc { font-size: 22px; } .brand-tuner { font-size: 15px; } .brand-studio { font-size: 9px; } .menu-bar { order: 3; width: 100%; margin: 0; min-height: 35px; overflow-x: auto; } .menu-item { height: 35px; } .shell { width: min(100% - 20px, 600px); } .toolbar { align-items: stretch; flex-wrap: wrap; } .toolbar-group { flex: 1 1 40%; } .toolbar-spacer { display: none; } .lower-grid, .bottom-grid, .map-workspace, .settings-grid { grid-template-columns: 1fr; } .feature-grid { grid-template-columns: 1fr; } .gauges-grid { gap: 10px; } .gauge-card { padding: 12px; min-height: 140px; } .gauge-value { font-size: 30px; } .footer { flex-direction: column; } }

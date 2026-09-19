@@ -173,5 +173,42 @@
   $("mapRedoButton").addEventListener("click", () => { if (!mapState.redo.length) return; mapState.undo.push(mapSnapshot()); mapState.values = mapState.redo.pop(); mapRender(); });
   mapRender();
 
+  const logState = { rows: [], filtered: [], suggested: null, playing: false, timer: null };
+  const logField = (row, field) => Number(row[field]) || 0;
+  function parseLogText(text) {
+    const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean); if (lines.length < 2) return [];
+    const delimiter = lines[0].includes("\t") ? "\t" : lines[0].includes(";") ? ";" : ",";
+    const headers = lines[0].split(delimiter).map((cell) => cell.trim().replace(/^\"|\"$/g, ""));
+    const aliases = { rpm: /rpm|rev/i, map: /(^|[^a-z])map([^a-z]|$)|manifold/i, tps: /tps|throttle|tp/i, afr: /afr|wideband|lambda/i, clt: /clt|coolant|temp/i, advance: /advance|spark|timing/i, time: /time|timestamp|secl/i, load: /load|ve/i };
+    const indexFor = (field) => headers.findIndex((header) => aliases[field].test(header));
+    return lines.slice(1).map((line) => {
+      const cells = line.split(delimiter).map((cell) => Number(String(cell).replace(/^\"|\"$/g, "").replace(",", ".")));
+      const row = {}; Object.keys(aliases).forEach((field) => { const index = indexFor(field); row[field] = index >= 0 && Number.isFinite(cells[index]) ? cells[index] : 0; });
+      return row;
+    }).filter((row) => row.rpm || row.map || row.afr || row.tps || row.clt);
+  }
+  function customFilterMatch(row) {
+    const source = $("logCustomFilter")?.value.trim(); if (!source) return true;
+    const parts = source.split(/\s*(\&\&|\|\||\bAND\b|\bOR\b)\s*/i).filter(Boolean); let result = true; let operator = "&&";
+    parts.forEach((part) => { if (/^(&&|\|\||AND|OR)$/i.test(part)) { operator = /OR|\|\|/i.test(part) ? "||" : "&&"; return; } const match = part.match(/\[?([A-Za-z]+)\]?\s*(>=|<=|==|!=|>|<)\s*(-?\d+(?:\.\d+)?)/); let value = false; if (match) { const actual = Number(row[match[1].toLowerCase()]) || 0; const expected = Number(match[3]); value = match[2] === ">" ? actual > expected : match[2] === "<" ? actual < expected : match[2] === ">=" ? actual >= expected : match[2] === "<=" ? actual <= expected : match[2] === "==" ? actual === expected : actual !== expected; } result = operator === "||" ? result || value : result && value; });
+    return result;
+  }
+  function filteredLogRows() {
+    const minRpm = Number($("logMinRpm")?.value) || 0; const maxRpm = Number($("logMaxRpm")?.value) || 20000; const minMap = Number($("logMinMap")?.value) || 0; const maxMap = Number($("logMaxMap")?.value) || 300; const minClt = Number($("logMinClt")?.value); const cltLimit = Number.isFinite(minClt) ? minClt : -40;
+    return logState.rows.filter((row) => row.rpm >= minRpm && row.rpm <= maxRpm && row.map >= minMap && row.map <= maxMap && row.clt >= cltLimit && customFilterMatch(row));
+  }
+  function drawLogChart() {
+    const canvas = $("logChart"); if (!canvas) return; const rect = canvas.getBoundingClientRect(); const ratio = window.devicePixelRatio || 1; const width = Math.max(320, Math.floor(rect.width)); const height = 320; canvas.width = width * ratio; canvas.height = height * ratio; const ctx = canvas.getContext("2d"); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); ctx.fillStyle = "#090b0d"; ctx.fillRect(0, 0, width, height); ctx.strokeStyle = "#1e282e"; for (let i = 1; i < 6; i += 1) { const y = i * height / 6; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); } const rows = logState.filtered; if (rows.length < 2) return; const xField = $("logXField").value; const yField = $("logYField").value; const xs = rows.map((row) => logField(row, xField)); const ys = rows.map((row) => logField(row, yField)); const minX = Math.min(...xs); const maxX = Math.max(...xs) || 1; const minY = Math.min(...ys); const maxY = Math.max(...ys) || 1; ctx.strokeStyle = "#00a8ff"; ctx.lineWidth = 2; ctx.beginPath(); rows.forEach((row, index) => { const x = ((xs[index] - minX) / (maxX - minX || 1)) * (width - 14) + 7; const y = height - (((ys[index] - minY) / (maxY - minY || 1)) * (height - 20) + 10); if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }); ctx.stroke(); }
+  function refreshLogView() { logState.filtered = filteredLogRows(); setText("logRecordCount", `${logState.filtered.length} registros de ${logState.rows.length}`); drawLogChart(); }
+  function openLogFile(file) { if (!file) return; const reader = new FileReader(); reader.onload = () => { logState.rows = parseLogText(String(reader.result)); refreshLogView(); setText("logFileStatus", file.name.toUpperCase()); $("logFileStatus").className = "badge good"; showToast(`${logState.rows.length} registros cargados`); }; reader.onerror = () => showToast("No se pudo abrir el registro"); reader.readAsText(file); }
+  function runVeAnalysis() { logState.filtered = filteredLogRows(); if (!logState.filtered.length) { showToast("No hay datos que cumplan los filtros"); return; } const buckets = Array.from({ length: 256 }, () => ({ sum: 0, hits: 0 })); logState.filtered.forEach((row) => { const col = Math.max(0, Math.min(15, Math.round((row.rpm - 500) / 500))); const load = row.load || row.map / 2.5; const gridRow = Math.max(0, Math.min(15, Math.round((load - 20) / 5))); const bucket = buckets[gridRow * 16 + col]; if (row.afr > 0) { bucket.sum += row.afr; bucket.hits += 1; } }); const suggested = mapState.values.slice(); let changed = 0; let hits = 0; buckets.forEach((bucket, index) => { if (bucket.hits < 2) return; const averageAfr = bucket.sum / bucket.hits; const correction = Math.max(.75, Math.min(1.25, 14.7 / averageAfr)); suggested[index] = Math.max(0, Math.min(255, mapState.values[index] * correction)); changed += Math.abs(suggested[index] - mapState.values[index]) > .2 ? 1 : 0; hits += bucket.hits; }); logState.suggested = suggested; setText("veStatus", "LISTA"); $("veStatus").className = "badge good"; setText("veSummary", `${hits} muestras válidas · ${changed} celdas con sugerencia · AFR objetivo 14.7`); $("veResults").innerHTML = '<span class="muted">La sugerencia usa AFR objetivo, número de muestras y filtros activos. Revísala antes de aplicarla.</span>'; showToast("Análisis VE terminado"); }
+  $("logFileInput").addEventListener("change", (event) => openLogFile(event.target.files[0]));
+  $("veAnalyzeButton").addEventListener("click", runVeAnalysis);
+  $("veApplyButton").addEventListener("click", () => { if (!logState.suggested) { showToast("Ejecuta primero el análisis VE"); return; } mapPushUndo(); mapState.values = logState.suggested.slice(); logState.suggested = null; mapRender(); activateView("tuneView"); showToast("Sugerencia aplicada a la tabla local; no se escribió en la ECU"); });
+  $("logClearButton").addEventListener("click", () => { logState.rows = []; logState.filtered = []; logState.suggested = null; setText("logFileStatus", "SIN LOG"); setText("veStatus", "ESPERANDO"); setText("veSummary", "Carga un log y ejecuta el análisis para calcular correcciones por celda."); refreshLogView(); });
+  ["logXField", "logYField", "logMinRpm", "logMaxRpm", "logMinMap", "logMaxMap", "logMinClt", "logCustomFilter"].forEach((id) => $(id).addEventListener("input", refreshLogView));
+  $("logPlayButton").addEventListener("click", () => { if (!logState.filtered.length) { showToast("Carga un registro antes de reproducirlo"); return; } logState.playing = !logState.playing; $("logPlayButton").textContent = logState.playing ? "PAUSAR" : "REPRODUCIR"; if (logState.playing) { let index = 0; logState.timer = setInterval(() => { const row = logState.filtered[index++ % logState.filtered.length]; updateTelemetry({ ...row, timestamp: Date.now() / 1000, iso_time: new Date().toISOString(), temperature: row.clt, pressure: row.map, throttle: row.tps, advance: row.advance, voltage: row.voltage || 0, status: "reproducción", source: "log" }); setText("logPlayTime", `${String(Math.floor(index / 3600)).padStart(2, "0")}:${String(Math.floor(index / 60) % 60).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}`); }, 100); } else clearInterval(logState.timer); });
+  window.addEventListener("resize", drawLogChart);
+
   loadLogs(); refresh(); setInterval(refresh, 100);
 })();

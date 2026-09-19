@@ -153,6 +153,12 @@ Los registros CSV se guardan en `/var/lib/dctuner/logs`. El botón **EXPORTAR CS
 
 El bloque **Editor local de tabla 16 × 16** permite cargar archivos `.MSQ`, `.BIN`, `.CSV` o JSON desde el navegador, modificar celdas, deshacer y rehacer cambios, comparar otro archivo y guardar una copia. La vista 3D es una visualización de la tabla. El editor no escribe en la ECU: la copia modificada debe validarse con el perfil de firmware correspondiente antes de usarla en el vehículo.
 
+### Funciones trasladadas desde MegaLogViewer
+
+La revisión del paquete adjunto identificó un visor de logs, diccionario de campos, campos calculados, fórmulas personalizadas, filtros de RPM/MAP/CLT, gráficas, reproducción y análisis VE. La versión web incorpora un visor CSV/LG con selección de ejes, filtros de RPM, MAP y CLT, filtro lógico personalizado, reproducción local, gráfica de canales y un análisis VE por celdas con número de muestras, AFR objetivo y sugerencias aplicables a la tabla local. Estas funciones se implementan desde cero y no incluyen los binarios ni las librerías propietarias de MegaLogViewer.
+
+El paquete Linux adjunto contiene un programa Java de escritorio y el ejecutable HD es un binario PE32 para Windows. Ninguno se ejecuta dentro del servicio Debian i386. El sistema web solo usa los archivos de log y las tablas como datos locales.
+
 ## Desarrollo y pruebas
 
 No hay dependencias JavaScript externas. Esto reduce el consumo y evita que el panel dependa de internet. En una estación de desarrollo con Flask instalado, ejecuta:
