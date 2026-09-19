@@ -1,5 +1,5 @@
 #!/bin/sh
-# DC TUNER STUDIO - instalador offline-friendly para Debian 12 i386.
+# DC TUNER STUDIO - instalador offline-friendly para Debian 12 amd64 (64-bit).
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -16,15 +16,15 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-printf '%s\n' "DC TUNER STUDIO — instalación local para Debian 12 i386"
+printf '%s\n' "DC TUNER STUDIO — instalación local para Debian 12 amd64 (64-bit)"
 printf '%s\n' "No se enviarán datos fuera de tu red local."
 
 if [ ! -f /etc/debian_version ]; then
   echo "AVISO: no se detectó Debian; el instalador continuará bajo tu responsabilidad."
 fi
 
-if command -v dpkg >/dev/null 2>&1 && [ "$(dpkg --print-architecture)" != "i386" ]; then
-  echo "AVISO: arquitectura detectada: $(dpkg --print-architecture). Este paquete está optimizado para i386."
+if command -v dpkg >/dev/null 2>&1 && [ "$(dpkg --print-architecture)" != "amd64" ]; then
+  echo "AVISO: arquitectura detectada: $(dpkg --print-architecture). Este instalador está preparado para amd64 (64-bit)."
 fi
 
 install_packages() {

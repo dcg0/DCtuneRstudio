@@ -67,6 +67,11 @@ class ApiTests(unittest.TestCase):
         response = self.client.post("/api/connection", json={"baud": 12345})
         self.assertEqual(response.status_code, 400)
 
+    def test_connection_accepts_windows_com_port_in_simulation(self):
+        response = self.client.post("/api/connection", json={"port": "COM7", "baud": 115200, "simulation": True, "profile": "megasquirt"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["status"]["port"], "COM7")
+
     def test_simulation_blocks_command(self):
         response = self.client.post("/api/command", json={"command": "status"})
         self.assertEqual(response.status_code, 409)

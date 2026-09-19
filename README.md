@@ -1,6 +1,6 @@
 # DC TUNER STUDIO
 
-**DC TUNER STUDIO** es una interfaz web local para supervisar una ECU MegaSquirt desde un equipo Debian 12 i386 sin pantalla física. La computadora que tiene conectado el USB ejecuta el backend y la laptop o el celular solamente abre un navegador. No se requiere internet durante la operación.
+**DC TUNER STUDIO** es una interfaz web local para supervisar una ECU MegaSquirt o Speeduino desde una PC Windows o Linux 64-bit. La computadora que tiene conectado el USB ejecuta el backend y el navegador muestra el panel. No se requiere internet durante la operación local.
 
 > **Importante:** la interfaz arranca en modo simulación para que puedas comprobar la red y el panel sin enviar nada al vehículo. Activa el modo serie solamente después de verificar el puerto USB, la velocidad y la instalación eléctrica.
 
@@ -19,6 +19,16 @@ El panel nativo es la opción recomendada para uso diario. noVNC queda disponibl
 
 La familia **Speeduino** está disponible en el selector de ECU. Su perfil usa el protocolo primario binario documentado por Speeduino: conexión USB/serie a `115200 8N1`, petición `A` y respuesta de telemetría de 120 bytes en little-endian. El lector extrae RPM, MAP, temperatura, AFR, avance, TPS y voltaje sin mezclar ese formato con el de MegaSquirt.
 
+### Matriz de conexión y protocolo
+
+| Familia | Transporte | Ajuste predeterminado | Estado en este paquete |
+| --- | --- | --- | --- |
+| Speeduino | USB/serie, COM en Windows o ttyUSB/ttyACM en Linux | 115200 8N1, petición binaria `A`, respuesta de 120 bytes little-endian | Telemetría primaria implementada y probada |
+| MegaSquirt-II / MS2-Extra | USB/serie | 115200; el comando realtime oficial usa `a`, CAN ID y table index | Transporte serie y parser genérico disponibles; el mapa binario depende del `.ini`/firmware |
+| MegaSquirt-III / MicroSquirt | USB/serie y, según instalación, CAN | Firmware Default o protocolo definido por su `.ini` | Requiere seleccionar la definición exacta antes de leer/escribir tablas |
+
+El programa no inventa offsets de MegaSquirt ni fuerza comandos de escritura entre variantes. Para una conexión real se debe cargar la definición `.ini` correspondiente al firmware. Esta decisión evita mostrar valores aparentemente válidos cuando la trama pertenece a otro MS1/MS2/MS3.
+
 ## Estructura
 
 ```text
@@ -36,7 +46,7 @@ DCtuneRstudio/
 └── README.md
 ```
 
-## Instalación en Debian 12 i386
+## Instalación en Linux 64-bit (Debian 12 amd64)
 
 La instalación necesita privilegios de administrador. Si el equipo está completamente aislado, prepara antes los paquetes Debian en una memoria USB o usa un DVD/repositorio local. Después de instalar, la aplicación no hace conexiones externas.
 
@@ -73,9 +83,20 @@ La instalación necesita privilegios de administrador. Si el equipo está comple
 
 El instalador copia la aplicación a `/opt/dctuner`, instala `python3-flask`, `python3-serial`, Xvfb, Openbox, x11vnc, noVNC y websockify, añade el usuario al grupo `dialout`, configura la IP `192.168.50.10/24` y activa `dctuner.service`.
 
-## Acceso desde la laptop o el celular
+## Instalación en Windows 64-bit
 
-Configura el adaptador de red del dispositivo cliente con una dirección del mismo rango, por ejemplo `192.168.50.20/24`, sin gateway. Abre:
+Instala Python 3.11 o posterior de 64 bits, abre PowerShell en la carpeta del proyecto y ejecuta:
+
+```powershell
+py -m pip install -r requirements-windows.txt
+.\arrancar-windows.bat
+```
+
+El lanzador acepta puertos `COM1` a `COM999`, conserva los logs en `%USERPROFILE%\DC-TUNER-STUDIO-data` y abre el panel en `http://127.0.0.1:8080/`. Cambia `DCTUNER_PROFILE=speeduino` y `DCTUNER_PORT=COM7` si ese es el puerto de tu ECU. En Linux se aceptan `/dev/ttyUSB0`, `/dev/ttyACM0` y equivalentes.
+
+## Acceso desde otra PC
+
+Configura el adaptador de red de la PC cliente con una dirección del mismo rango, por ejemplo `192.168.50.20/24`, sin gateway. Abre:
 
 - **Panel principal:** `http://192.168.50.10:8080/`
 - **Consola noVNC:** `http://192.168.50.10:6080/vnc.html`
@@ -149,7 +170,7 @@ Si el panel no abre desde la laptop, verifica el enlace físico, la IP de ambos 
 
 La aplicación escucha en todas las interfaces porque el uso previsto es una red directa. No la publiques en internet ni la conectes a una red compartida sin colocar una protección adicional. La terminal se mantiene bloqueada en simulación y limita los comandos a texto ASCII corto. El borrado de DTC, las pruebas de actuadores y la escritura de mapas deben implementarse mediante un perfil de ECU explícito; no se simulan como si fueran operaciones reales.
 
-Los registros CSV se guardan en `/var/lib/dctuner/logs`. El botón **EXPORTAR CSV** descarga la ventana de telemetría retenida en memoria. Para conservar sesiones completas, inicia **GRABAR** antes de la prueba. La retención de memoria está limitada para conservar recursos en una máquina de 32 bits.
+Los registros CSV se guardan en `/var/lib/dctuner/logs`. El botón **EXPORTAR CSV** descarga la ventana de telemetría retenida en memoria. Para conservar sesiones completas, inicia **GRABAR** antes de la prueba.
 
 El bloque **Editor local de tabla 16 × 16** permite cargar archivos `.MSQ`, `.BIN`, `.CSV` o JSON desde el navegador, modificar celdas, deshacer y rehacer cambios, comparar otro archivo y guardar una copia. La vista 3D es una visualización de la tabla. El editor no escribe en la ECU: la copia modificada debe validarse con el perfil de firmware correspondiente antes de usarla en el vehículo.
 
@@ -157,7 +178,7 @@ El bloque **Editor local de tabla 16 × 16** permite cargar archivos `.MSQ`, `.B
 
 La revisión del paquete adjunto identificó un visor de logs, diccionario de campos, campos calculados, fórmulas personalizadas, filtros de RPM/MAP/CLT, gráficas, reproducción y análisis VE. La versión web incorpora un visor CSV/LG con selección de ejes, filtros de RPM, MAP y CLT, filtro lógico personalizado, reproducción local, gráfica de canales y un análisis VE por celdas con número de muestras, AFR objetivo y sugerencias aplicables a la tabla local. Estas funciones se implementan desde cero y no incluyen los binarios ni las librerías propietarias de MegaLogViewer.
 
-El paquete Linux adjunto contiene un programa Java de escritorio y el ejecutable HD es un binario PE32 para Windows. Ninguno se ejecuta dentro del servicio Debian i386. El sistema web solo usa los archivos de log y las tablas como datos locales.
+El paquete Linux adjunto contiene un programa Java de escritorio y el ejecutable HD es un binario PE32 para Windows. Ninguno se ejecuta dentro del servicio local; el sistema web solo usa los archivos de log y las tablas como datos locales.
 
 ## Desarrollo y pruebas
 

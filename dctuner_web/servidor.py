@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DC TUNER STUDIO: backend web local para Debian 12 i386.
+"""DC TUNER STUDIO: backend web local para Windows y Linux 64-bit.
 
 El proceso no necesita internet. Cuando existe pyserial lee una ECU por
 /dev/ttyUSB* o /dev/ttyACM*. Sin una ECU conectada, el modo simulación permite
@@ -32,9 +32,10 @@ except ImportError:  # El instalador ofrece python3-serial; el simulador sigue d
     serial = None
 
 BASE_DIR = Path(__file__).resolve().parent
-LOG_DIR = Path(os.environ.get("DCTUNER_LOG_DIR", "/var/lib/dctuner/logs"))
-MAP_DIR = Path(os.environ.get("DCTUNER_MAP_DIR", "/var/lib/dctuner/maps"))
-DEFAULT_PORT = os.environ.get("DCTUNER_PORT", "/dev/ttyUSB0")
+DATA_DIR = Path(os.environ.get("DCTUNER_DATA_DIR", str(Path.home() / "DC-TUNER-STUDIO-data" if os.name == "nt" else "/var/lib/dctuner")))
+LOG_DIR = Path(os.environ.get("DCTUNER_LOG_DIR", str(DATA_DIR / "logs")))
+MAP_DIR = Path(os.environ.get("DCTUNER_MAP_DIR", str(DATA_DIR / "maps")))
+DEFAULT_PORT = os.environ.get("DCTUNER_PORT", "COM3" if os.name == "nt" else "/dev/ttyUSB0")
 DEFAULT_BAUD = int(os.environ.get("DCTUNER_BAUD", "115200"))
 DEFAULT_PROFILE = os.environ.get("DCTUNER_PROFILE", "megasquirt")
 WEB_HOST = os.environ.get("DCTUNER_HOST", "0.0.0.0")
@@ -148,7 +149,7 @@ class ECUTransport:
         self._lock = threading.Lock()
 
     def configure(self, port: str, baud: int, simulation: bool, profile: str = DEFAULT_PROFILE) -> None:
-        safe_port = port if re.fullmatch(r"/dev/tty(?:USB|ACM)[0-9]+", port) else DEFAULT_PORT
+        safe_port = port if re.fullmatch(r"(?:/dev/tty(?:USB|ACM)[0-9]+|COM[0-9]{1,3})", port, flags=re.IGNORECASE) else DEFAULT_PORT
         with self._lock:
             self._port, self._baud, self._simulation = safe_port, int(baud), bool(simulation)
             self._profile = profile if profile in {"megasquirt", "speeduino"} else "megasquirt"
