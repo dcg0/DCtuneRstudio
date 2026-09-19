@@ -23,7 +23,7 @@ La familia **Speeduino** está disponible en el selector de ECU. Su perfil usa e
 
 | Familia | Transporte | Ajuste predeterminado | Estado en este paquete |
 | --- | --- | --- | --- |
-| Speeduino | USB/serie, COM en Windows o ttyUSB/ttyACM en Linux | 115200 8N1, petición binaria `A`, respuesta de 120 bytes little-endian | Telemetría primaria implementada y probada |
+| Speeduino | USB/serie, `/dev/ttyUSB*` o `/dev/ttyACM*` | 115200 8N1, petición binaria `A`, respuesta de 120 bytes little-endian | Telemetría primaria implementada y probada |
 | MegaSquirt-II / MS2-Extra | USB/serie | 115200; el comando realtime oficial usa `a`, CAN ID y table index | Transporte serie y parser genérico disponibles; el mapa binario depende del `.ini`/firmware |
 | MegaSquirt-III / MicroSquirt | USB/serie y, según instalación, CAN | Firmware Default o protocolo definido por su `.ini` | Requiere seleccionar la definición exacta antes de leer/escribir tablas |
 
@@ -82,17 +82,6 @@ La instalación necesita privilegios de administrador. Si el equipo está comple
    ```
 
 El instalador copia la aplicación a `/opt/dctuner`, instala `python3-flask`, `python3-serial`, Xvfb, Openbox, x11vnc, noVNC y websockify, añade el usuario al grupo `dialout`, configura la IP `192.168.50.10/24` y activa `dctuner.service`.
-
-## Instalación en Windows 64-bit
-
-Instala Python 3.11 o posterior de 64 bits, abre PowerShell en la carpeta del proyecto y ejecuta:
-
-```powershell
-py -m pip install -r requirements-windows.txt
-.\arrancar-windows.bat
-```
-
-El lanzador acepta puertos `COM1` a `COM999`, conserva los logs en `%USERPROFILE%\DC-TUNER-STUDIO-data` y abre el panel en `http://127.0.0.1:8080/`. Cambia `DCTUNER_PROFILE=speeduino` y `DCTUNER_PORT=COM7` si ese es el puerto de tu ECU. En Linux se aceptan `/dev/ttyUSB0`, `/dev/ttyACM0` y equivalentes.
 
 ## Acceso desde otra PC
 
