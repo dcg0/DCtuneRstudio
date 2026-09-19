@@ -76,7 +76,7 @@ class Tooltip:
 class RoundGauge(tk.Canvas):
     """Automotive-style circular gauge for high-priority live values."""
     def __init__(self, parent: tk.Misc, title: str, unit: str, maximum: float, accent: str, redline: float | None = None) -> None:
-        super().__init__(parent, width=210, height=185, bg=COLORS["panel"], highlightthickness=0)
+        super().__init__(parent, width=330, height=270, bg=COLORS["panel"], highlightthickness=0)
         self.title, self.unit, self.maximum, self.accent, self.redline = title, unit, maximum, accent, redline
         self.value = 0.0
         self.bind("<Enter>", lambda _event: self.configure(cursor="crosshair"))
@@ -88,7 +88,7 @@ class RoundGauge(tk.Canvas):
 
     def draw(self) -> None:
         self.delete("all")
-        cx, cy, radius = 105, 92, 72
+        cx, cy, radius = 165, 132, 108
         self.create_oval(cx - radius, cy - radius, cx + radius, cy + radius, fill="#080B0D", outline=COLORS["grid"], width=3)
         self.create_arc(cx - radius + 7, cy - radius + 7, cx + radius - 7, cy + radius - 7, start=210, extent=-240, style="arc", outline=COLORS["muted"], width=8)
         if self.redline is not None:
@@ -108,9 +108,9 @@ class RoundGauge(tk.Canvas):
         nx, ny = cx + (radius - 22) * math.cos(angle), cy - (radius - 22) * math.sin(angle)
         self.create_line(cx, cy, nx, ny, fill=self.accent, width=4)
         self.create_oval(cx - 6, cy - 6, cx + 6, cy + 6, fill=self.accent, outline=COLORS["white"])
-        self.create_text(cx, 35, text=self.title, fill=COLORS["white"], font=("Arial", 10, "bold"))
-        self.create_text(cx, 135, text=f"{self.value:.0f}", fill=self.accent, font=("Arial", 20, "bold"))
-        self.create_text(cx, 157, text=self.unit, fill=COLORS["muted"], font=("Arial", 9))
+        self.create_text(cx, 30, text=self.title, fill=COLORS["white"], font=("Arial", 13, "bold"))
+        self.create_text(cx, 192, text=f"{self.value:.0f}", fill=self.accent, font=("Arial", 30, "bold"))
+        self.create_text(cx, 225, text=self.unit, fill=COLORS["muted"], font=("Arial", 11))
 
 
 @dataclass
@@ -475,13 +475,13 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
 
     def _build_live(self) -> None:
         self.live_tab.columnconfigure((0, 1, 2), weight=1)
-        self.live_tab.rowconfigure(3, weight=1)
+        self.live_tab.rowconfigure(4, weight=1)
         self.metric_labels: dict[str, tk.Label] = {}
         self.tacho_gauge: Optional[RoundGauge] = None
         self.speed_gauge: Optional[RoundGauge] = None
         metrics = (("RPM", "rpm", "rpm", "#00A8FF", "Revoluciones del motor", "Vigila el ralentí y cambios bruscos."), ("MAP", "map", "kPa", "#00E060", "Presión absoluta del múltiple", "Indica la carga y el vacío del motor."), ("TPS", "tps", "%", "#F7B955", "Posición de mariposa", "Compárala con MAP y RPM al acelerar."), ("CLT", "clt", "°C", "#FF2020", "Temperatura de refrigerante", "Debe subir gradualmente; vigila sobrecalentamiento."), ("IAT", "iat", "°C", "#FF8A3D", "Temperatura de admisión", "Ayuda a interpretar densidad y compensación de combustible."), ("AFR", "afr", "AFR", "#C8C8C8", "Relación aire/combustible", "Compara con el objetivo y la carga del motor."), ("Avance", "advance", "°", "#B780FF", "Avance de encendido", "Observa estabilidad y cambios bajo carga."), ("Pulso iny.", "pulse", "ms", "#FF5CC8", "Tiempo de inyección", "Útil para detectar saturación o cambios de carga."), ("Batería", "battery", "V", "#38D6FF", "Voltaje de alimentación", "Una caída puede afectar la comunicación ECU."))
         for index, (title, key, unit, color, description, note) in enumerate(metrics):
-            card = self._card(self.live_tab, title, index // 3, index % 3)
+            card = self._card(self.live_tab, title, index // 3 + 1, index % 3)
             card.configure(labelanchor="nw")
             row = tk.Frame(card, bg=COLORS["panel"]); row.pack(fill="x", pady=(3, 0))
             label = tk.Label(row, text="—", font=("Arial", 24, "bold"), bg=COLORS["panel"], fg=color); label.pack(side="left")
@@ -489,14 +489,15 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
             tk.Label(card, text=description, font=("Arial", 8), bg=COLORS["panel"], fg=COLORS["silver"], anchor="w").pack(fill="x", pady=(2, 5))
             Tooltip(card, note); Tooltip(label, note)
             self.metric_labels[key] = label
-        graph_card = self._card(self.live_tab, "INSTRUMENTOS Y TELEMETRÍA · RPM / VELOCIDAD / AFR / MAP", 3, 0); graph_card.grid(columnspan=2, sticky="nsew")
-        self.gauge_frame = tk.Frame(graph_card, bg=COLORS["panel"]); self.gauge_frame.pack(fill="x", pady=(0, 4))
-        self.tacho_gauge = RoundGauge(self.gauge_frame, "TACÓMETRO", "RPM", 8000, COLORS["blue"], 6500); self.tacho_gauge.pack(side="left", expand=True, padx=8)
-        self.speed_gauge = RoundGauge(self.gauge_frame, "VELOCÍMETRO", "km/h", 240, COLORS["green"]); self.speed_gauge.pack(side="left", expand=True, padx=8)
+        gauge_card = self._card(self.live_tab, "INSTRUMENTOS PRINCIPALES", 0, 0); gauge_card.grid(columnspan=3, sticky="nsew")
+        self.gauge_frame = tk.Frame(gauge_card, bg=COLORS["panel"]); self.gauge_frame.pack(fill="both", expand=True, pady=(0, 2))
+        self.tacho_gauge = RoundGauge(self.gauge_frame, "TACÓMETRO", "RPM", 8000, COLORS["blue"], 6500); self.tacho_gauge.pack(side="left", expand=True, padx=24)
+        self.speed_gauge = RoundGauge(self.gauge_frame, "VELOCÍMETRO", "km/h", 240, COLORS["green"]); self.speed_gauge.pack(side="left", expand=True, padx=24)
         Tooltip(self.tacho_gauge, "Tacómetro: RPM del motor. Zona roja desde 6.500 RPM en esta vista de demostración.")
         Tooltip(self.speed_gauge, "Velocímetro: velocidad estimada en km/h. La señal real depende del firmware y sensor disponible.")
+        graph_card = self._card(self.live_tab, "TELEMETRÍA EN TIEMPO REAL · AFR / MAP", 4, 0); graph_card.grid(columnspan=2, sticky="nsew")
         self.live_canvas = tk.Canvas(graph_card, height=145, bg=COLORS["panel"], highlightthickness=0); self.live_canvas.pack(fill="both", expand=True)
-        quick = self._card(self.live_tab, "ESTADO Y CONSEJOS DE AJUSTE", 3, 2)
+        quick = self._card(self.live_tab, "ESTADO Y CONSEJOS DE AJUSTE", 4, 2)
         self.quick_status = tk.Text(quick, height=12, width=32, bg=COLORS["panel"], fg=COLORS["silver"], relief="flat", state="disabled")
         self.quick_status.pack(fill="both", expand=True); self._set_quick("Sistema listo.\n\nConsejos rápidos:\n• Cambia una zona cada vez.\n• Compara AFR con MAP y RPM.\n• Guarda una copia antes de ajustar.\n• Verifica CLT, IAT y batería.\n\nModo seguro: no se envía escritura ECU automáticamente.")
 

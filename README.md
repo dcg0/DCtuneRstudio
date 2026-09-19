@@ -11,6 +11,7 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Cada sensor muestra nombre, valor, unidad, color propio, explicación y nota contextual al pasar el ratón.
 - Tacómetro circular con escala 0–8000 RPM, aguja, lectura digital y zona roja.
 - Velocímetro circular con escala 0–240 km/h, aguja y lectura digital.
+- Los dos instrumentos principales ocupan ahora la franja superior del panel para una lectura inmediata durante la conducción o el ajuste.
 - Simulador ECU integrado para demostraciones y pruebas seguras.
 - Detección de puertos USB cuando `pyserial` está instalado.
 - Transporte serie opcional con líneas CSV: `rpm,map,tps,clt,afr,battery`.
