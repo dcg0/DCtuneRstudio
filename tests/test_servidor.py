@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "dctuner_web"))
+import servidor  # noqa: E402
+
+
+class ParserTests(unittest.TestCase):
+    def test_csv_frame(self):
+        item = servidor.parse_telemetry_line("1200,86,100,14.7,35,12,13.8,18")
+        self.assertIsNotNone(item)
+        self.assertEqual(item.rpm, 1200)
+        self.assertEqual(item.temperature, 86)
+        self.assertEqual(item.throttle, 18)
+
+    def test_key_value_frame(self):
+        item = servidor.parse_telemetry_line("RPM=1500,TEMP=90,MAP=105,AFR=14.3,LOAD=40,ADV=16,VOLT=13.9,TPS=22")
+        self.assertIsNotNone(item)
+        self.assertEqual(item.rpm, 1500)
+        self.assertEqual(item.afr, 14.3)
+        self.assertEqual(item.throttle, 22)
+
+    def test_invalid_frame(self):
+        self.assertIsNone(servidor.parse_telemetry_line("not-a-frame"))
+        self.assertIsNone(servidor.parse_telemetry_line("1,2"))
+
+
+class ApiTests(unittest.TestCase):
+    def setUp(self):
+        self.client = servidor.app.test_client()
+        servidor.transport.stop()
+        servidor.transport._simulation = True
+        servidor.transport.start()
+
+    def tearDown(self):
+        servidor.transport.stop()
+
+    def test_health_and_telemetry(self):
+        self.assertEqual(self.client.get("/api/health").status_code, 200)
+        response = self.client.get("/api/telemetry?limit=2")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("latest", response.get_json())
+
+    def test_connection_rejects_invalid_baud(self):
+        response = self.client.post("/api/connection", json={"baud": 12345})
+        self.assertEqual(response.status_code, 400)
+
+    def test_simulation_blocks_command(self):
+        response = self.client.post("/api/command", json={"command": "status"})
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.get_json()["ok"])
+
+    def test_recording_writes_csv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            original = servidor.LOG_DIR
+            servidor.LOG_DIR = Path(directory)
+            try:
+                start = self.client.post("/api/recording", json={"active": True})
+                self.assertTrue(start.get_json()["active"])
+                stop = self.client.post("/api/recording", json={"active": False})
+                self.assertFalse(stop.get_json()["active"])
+                self.assertTrue(Path(stop.get_json()["file"]).exists())
+            finally:
+                servidor.LOG_DIR = original
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
