@@ -6,8 +6,11 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 
 ## Funciones incluidas
 
-- Interfaz oscura profesional con identidad DC azul metálico y rojo neón.
-- Panel en vivo con RPM, MAP, TPS, CLT, AFR y voltaje.
+- Interfaz oscura profesional con identidad textual DC TUNER STUDIO en azul, blanco y rojo neón.
+- Panel en vivo con bloques separados para RPM, MAP, TPS, CLT, IAT, AFR, avance, pulso de inyector y voltaje.
+- Cada sensor muestra nombre, valor, unidad, color propio, explicación y nota contextual al pasar el ratón.
+- Tacómetro circular con escala 0–8000 RPM, aguja, lectura digital y zona roja.
+- Velocímetro circular con escala 0–240 km/h, aguja y lectura digital.
 - Simulador ECU integrado para demostraciones y pruebas seguras.
 - Detección de puertos USB cuando `pyserial` está instalado.
 - Transporte serie opcional con líneas CSV: `rpm,map,tps,clt,afr,battery`.
