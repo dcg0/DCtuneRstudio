@@ -31,7 +31,8 @@
     const dot = $("connectionDot");
     dot.className = "status-dot " + (telemetry.status === "connected" ? "online" : telemetry.status === "simulated" ? "simulated" : "offline");
     setText("connectionText", telemetry.status === "connected" ? "ECU CONECTADA" : telemetry.status === "simulated" ? "SIMULACIÓN" : "SIN CONEXIÓN");
-    setText("sourceStatus", telemetry.source || status.mode || "—");
+    const profileName = status.profile === "speeduino" ? "Speeduino" : "MegaSquirt";
+    setText("sourceStatus", `${profileName} · ${telemetry.source || status.mode || "—"}`);
     setText("portStatus", status.port || "—");
     setText("healthBadge", telemetry.status === "connected" || telemetry.status === "simulated" ? (telemetry.status === "simulated" ? "SIMULACIÓN" : "EN LÍNEA") : "REVISAR");
     $("healthBadge").className = "badge " + (telemetry.status === "connected" || telemetry.status === "simulated" ? "good" : "warn");
@@ -102,7 +103,7 @@
   $("connectButton").addEventListener("click", async () => {
     const button = $("connectButton"); button.disabled = true; button.textContent = "CONECTANDO...";
     try {
-      const status = await getJSON("/api/connection", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ simulation: $("modeSelect").value === "true", port: $("portSelect").value, baud: Number($("baudSelect").value) }) });
+      const status = await getJSON("/api/connection", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ simulation: $("modeSelect").value === "true", profile: $("profileSelect").value, port: $("portSelect").value, baud: Number($("baudSelect").value) }) });
       updateConnection(status.status);
       $("safetyNotice").innerHTML = status.status.mode === "simulación" ? "<strong>MODO SEGURO:</strong> el simulador está activo. Ningún comando sale por USB." : "<strong>ECU EN SERIE:</strong> verifica RPM, temperatura y voltaje antes de modificar un mapa.";
     } catch (error) { setText("connectionText", "ERROR DE CONEXIÓN"); }

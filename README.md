@@ -17,6 +17,8 @@ El paquete ofrece dos formas de trabajo desde navegador:
 
 El panel nativo es la opción recomendada para uso diario. noVNC queda disponible como consola de mantenimiento. Ambas direcciones funcionan únicamente dentro de la red local.
 
+La familia **Speeduino** está disponible en el selector de ECU. Su perfil usa el protocolo primario binario documentado por Speeduino: conexión USB/serie a `115200 8N1`, petición `A` y respuesta de telemetría de 120 bytes en little-endian. El lector extrae RPM, MAP, temperatura, AFR, avance, TPS y voltaje sin mezclar ese formato con el de MegaSquirt.
+
 ## Estructura
 
 ```text
@@ -187,3 +189,7 @@ python3 dctuner_web/servidor.py --host 0.0.0.0 --port 8080
 [3]: https://pyserial.readthedocs.io/ "pySerial Documentation"
 
 [4]: https://novnc.com/info.html "noVNC Project Information"
+
+[5]: https://wiki.speeduino.com/en/reference/Interface_Protocol "Speeduino Interface Protocol"
+
+[6]: https://wiki.speeduino.com/en/Connecting_to_TunerStudio "Speeduino Connecting to TunerStudio"

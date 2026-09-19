@@ -57,6 +57,7 @@ mkdir -p /var/lib/dctuner/logs /var/lib/dctuner/maps
 cat > "$DEFAULTS_FILE" <<'EOF'
 # DC TUNER STUDIO. Cambia DCTUNER_SERIE=1 después de probar el simulador.
 DCTUNER_SERIE=0
+DCTUNER_PROFILE=megasquirt
 DCTUNER_PORT=/dev/ttyUSB0
 DCTUNER_BAUD=115200
 DCTUNER_WEB_PORT=8080
@@ -118,6 +119,7 @@ Logs:              sudo journalctl -u dctuner.service -f
 Por seguridad el arranque queda en simulación. Para usar la ECU:
   sudo nano /etc/default/dctuner
   Cambia DCTUNER_SERIE=0 a DCTUNER_SERIE=1
+  Para Speeduino usa DCTUNER_PROFILE=speeduino y 115200 8N1
   Ajusta DCTUNER_PORT y ejecuta: sudo systemctl restart dctuner.service
 
 Si el cable directo no activa la IP al instante, aplica la configuración con:

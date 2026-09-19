@@ -36,6 +36,7 @@ LOG_DIR = Path(os.environ.get("DCTUNER_LOG_DIR", "/var/lib/dctuner/logs"))
 MAP_DIR = Path(os.environ.get("DCTUNER_MAP_DIR", "/var/lib/dctuner/maps"))
 DEFAULT_PORT = os.environ.get("DCTUNER_PORT", "/dev/ttyUSB0")
 DEFAULT_BAUD = int(os.environ.get("DCTUNER_BAUD", "115200"))
+DEFAULT_PROFILE = os.environ.get("DCTUNER_PROFILE", "megasquirt")
 WEB_HOST = os.environ.get("DCTUNER_HOST", "0.0.0.0")
 WEB_PORT = int(os.environ.get("DCTUNER_WEB_PORT", "8080"))
 
@@ -142,13 +143,15 @@ class ECUTransport:
         self._simulation = True
         self._port = DEFAULT_PORT
         self._baud = DEFAULT_BAUD
+        self._profile = DEFAULT_PROFILE
         self._last_error = "Sin conexión"
         self._lock = threading.Lock()
 
-    def configure(self, port: str, baud: int, simulation: bool) -> None:
+    def configure(self, port: str, baud: int, simulation: bool, profile: str = DEFAULT_PROFILE) -> None:
         safe_port = port if re.fullmatch(r"/dev/tty(?:USB|ACM)[0-9]+", port) else DEFAULT_PORT
         with self._lock:
             self._port, self._baud, self._simulation = safe_port, int(baud), bool(simulation)
+            self._profile = profile if profile in {"megasquirt", "speeduino"} else "megasquirt"
         self.stop()
         self.start()
 
@@ -172,7 +175,7 @@ class ECUTransport:
 
     def status(self) -> dict[str, Any]:
         item = self.store.latest()
-        return {"connected": item.status == "connected" or item.status == "simulated", "mode": "simulación" if self._simulation else "serie", "port": self._port, "baud": self._baud, "serial_available": serial is not None, "last_error": self._last_error, "telemetry": telemetry_dict(item)}
+        return {"connected": item.status == "connected" or item.status == "simulated", "mode": "simulación" if self._simulation else "serie", "profile": self._profile, "port": self._port, "baud": self._baud, "serial_available": serial is not None, "last_error": self._last_error, "telemetry": telemetry_dict(item)}
 
     def _simulation_loop(self) -> None:
         tick = 0
@@ -192,6 +195,9 @@ class ECUTransport:
         try:
             self._serial = serial.Serial(self._port, self._baud, timeout=0.2)
             self._last_error = ""
+            if self._profile == "speeduino":
+                self._speeduino_loop()
+                return
             while not self._stop.is_set():
                 raw = self._serial.readline()
                 if not raw:
@@ -211,6 +217,22 @@ class ECUTransport:
                 except Exception:
                     pass
                 self._serial = None
+
+    def _speeduino_loop(self) -> None:
+        """Pide la trama binaria primaria Speeduino ``A`` sin enviar ráfagas.
+
+        Speeduino documenta una respuesta de 120 bytes y exige esperar la
+        respuesta antes de enviar otra petición. Este bucle respeta ese orden.
+        """
+        while not self._stop.is_set():
+            self._serial.write(b"A")
+            payload = self._serial.read(120)
+            item = parse_speeduino_realtime(payload)
+            if item:
+                item.status, item.source = "connected", f"Speeduino · {self._port}"
+                self.store.update(item)
+            else:
+                self._stop.wait(0.05)
 
     def send_safe_command(self, command: str) -> tuple[bool, str]:
         """Solo envía cuando el usuario lo habilita explícitamente y hay serie activa."""
@@ -257,6 +279,38 @@ def parse_telemetry_line(line: str) -> Telemetry | None:
         return None
 
 
+def parse_speeduino_realtime(payload: bytes) -> Telemetry | None:
+    """Decodifica el paquete primario ``A`` de Speeduino.
+
+    Los campos documentados son little-endian: MAP en bytes 4-5, RPM en
+    bytes 14-15, avance en byte 23, TPS en byte 24, batería en décimas de
+    voltio y temperatura con el offset de calibración habitual de 40.
+    """
+    if len(payload) < 25:
+        return None
+    data = list(payload)
+
+    def u16(index: int) -> int:
+        return data[index] | (data[index + 1] << 8)
+
+    pressure = u16(4)
+    rpm = u16(14)
+    raw_coolant = data[7]
+    temperature = raw_coolant - 40
+    afr = data[10] / 10.0 if data[10] else 0.0
+    return Telemetry(
+        timestamp=time.time(),
+        rpm=rpm,
+        temperature=temperature,
+        pressure=pressure,
+        afr=afr,
+        load=max(0.0, min(100.0, pressure / 2.5)),
+        advance=float(data[23]),
+        voltage=data[9] / 10.0,
+        throttle=float(data[24]),
+    )
+
+
 store = TelemetryStore()
 transport = ECUTransport(store)
 app = Flask(__name__, static_folder=str(BASE_DIR), static_url_path="")
@@ -298,7 +352,7 @@ def connection() -> Response:
         return jsonify({"ok": False, "error": "Baudrate inválido"}), 400
     if baud not in {9600, 19200, 38400, 57600, 115200, 230400}:
         return jsonify({"ok": False, "error": "Baudrate no permitido"}), 400
-    transport.configure(str(payload.get("port", DEFAULT_PORT)), baud, bool(payload.get("simulation", True)))
+    transport.configure(str(payload.get("port", DEFAULT_PORT)), baud, bool(payload.get("simulation", True)), str(payload.get("profile", DEFAULT_PROFILE)))
     return jsonify({"ok": True, "status": transport.status()})
 
 

@@ -28,6 +28,24 @@ class ParserTests(unittest.TestCase):
         self.assertIsNone(servidor.parse_telemetry_line("not-a-frame"))
         self.assertIsNone(servidor.parse_telemetry_line("1,2"))
 
+    def test_speeduino_primary_realtime_packet(self):
+        packet = bytearray(120)
+        packet[4:6] = (100).to_bytes(2, "little")
+        packet[7] = 126  # 86 °C after the documented calibration offset.
+        packet[9] = 138  # 13.8 V.
+        packet[10] = 147  # 14.7 AFR.
+        packet[14:16] = (1800).to_bytes(2, "little")
+        packet[23] = 18
+        packet[24] = 22
+        item = servidor.parse_speeduino_realtime(bytes(packet))
+        self.assertIsNotNone(item)
+        self.assertEqual(item.rpm, 1800)
+        self.assertEqual(item.pressure, 100)
+        self.assertEqual(item.temperature, 86)
+        self.assertAlmostEqual(item.afr, 14.7)
+        self.assertAlmostEqual(item.voltage, 13.8)
+        self.assertEqual(item.throttle, 22)
+
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
