@@ -17,6 +17,8 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Registro de telemetría con exportación CSV.
 - Exportación PDF offline mediante el generador integrado.
 - Comparación de mapas celda a celda.
+- Tooltips al pasar el ratón por sensores y controles, con notas de interpretación.
+- Contexto de celda al mover el cursor sobre el mapa: fila, columna, valor y consejo de ajuste conservador.
 - Reconexión y registro básico de errores de comunicación.
 - Selector de perfil para **Speeduino**, **MegaSquirt/Microsquirt** y **ELM327**.
 - Adaptadores de identificación y normalización de telemetría en modo solo lectura.

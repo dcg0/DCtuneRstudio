@@ -37,6 +37,41 @@ def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+class Tooltip:
+    """Small non-blocking hover note for dense tuning screens."""
+    def __init__(self, widget: tk.Misc, text: str) -> None:
+        self.widget, self.text = widget, text
+        self.window: Optional[tk.Toplevel] = None
+        self.after_id: Optional[str] = None
+        widget.bind("<Enter>", self.schedule, add="+")
+        widget.bind("<Leave>", self.hide, add="+")
+
+    def schedule(self, _event: tk.Event) -> None:
+        self.after_id = self.widget.after(450, self.show)
+
+    def show(self) -> None:
+        if self.window or not self.widget.winfo_viewable():
+            return
+        self.window = tk.Toplevel(self.widget)
+        self.window.overrideredirect(True)
+        self.window.configure(background=COLORS["blue"])
+        label = tk.Label(self.window, text=self.text, justify="left", wraplength=280,
+                         bg=COLORS["panel2"], fg=COLORS["white"], padx=10, pady=7,
+                         font=("Arial", 9))
+        label.pack(padx=1, pady=1)
+        x = self.widget.winfo_rootx() + 12
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        self.window.geometry(f"+{x}+{y}")
+
+    def hide(self, _event: tk.Event | None = None) -> None:
+        if self.after_id:
+            self.widget.after_cancel(self.after_id)
+            self.after_id = None
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+
 @dataclass
 class MapData:
     name: str = "Base Map"
@@ -261,6 +296,7 @@ class App(tk.Tk):
         self.status_var = tk.StringVar(value="DESCONECTADO · modo seguro")
         self.port_var = tk.StringVar(value="SIMULATOR")
         self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
+        self.hover_var = tk.StringVar(value="Pasa el ratón sobre un dato para ver qué significa")
         self.view_var = tk.StringVar(value="3d")
         self._configure_style()
         self._build_menu()
@@ -332,8 +368,12 @@ class App(tk.Tk):
         controls = tk.Frame(right, bg=COLORS["bg"]); controls.pack(anchor="e", pady=8)
         self.protocol_combo = ttk.Combobox(controls, textvariable=self.protocol_var, width=28, state="readonly", values=list(PROTOCOLS)); self.protocol_combo.pack(side="left", padx=5)
         self.port_combo = ttk.Combobox(controls, textvariable=self.port_var, width=18, state="readonly"); self.port_combo.pack(side="left", padx=5)
-        ttk.Button(controls, text="Actualizar", command=self.refresh_ports).pack(side="left", padx=3)
+        Tooltip(self.protocol_combo, "Perfil de comunicación. Selecciona el firmware antes de conectar.")
+        Tooltip(self.port_combo, "Puerto USB/Bluetooth detectado. Usa SIMULATOR para practicar sin vehículo.")
+        refresh_button = ttk.Button(controls, text="Actualizar", command=self.refresh_ports); refresh_button.pack(side="left", padx=3)
+        Tooltip(refresh_button, "Vuelve a buscar puertos serie conectados.")
         self.connect_btn = ttk.Button(controls, text="Conectar", command=self.toggle_connection); self.connect_btn.pack(side="left", padx=3)
+        Tooltip(self.connect_btn, "Conecta en modo lectura. Las escrituras ECU están bloqueadas en esta versión.")
 
     def _build_body(self) -> None:
         self.notebook = ttk.Notebook(self); self.notebook.pack(fill="both", expand=True, padx=18, pady=(0, 10))
@@ -345,6 +385,7 @@ class App(tk.Tk):
         tk.Label(footer, text="USB / ELM327 · MS1 / MS2 / MS3 · Microsquirt", bg=COLORS["panel2"], fg=COLORS["muted"]).pack(side="left", padx=14)
         self.footer_var = tk.StringVar(value="Puerto: SIMULATOR   |   115200 baud   |   ECU: simulada")
         tk.Label(footer, textvariable=self.footer_var, bg=COLORS["panel2"], fg=COLORS["silver"]).pack(side="right", padx=14)
+        tk.Label(footer, textvariable=self.hover_var, bg=COLORS["panel2"], fg=COLORS["blue"], anchor="w").pack(side="left", padx=14, fill="x", expand=True)
 
     def _build_help(self) -> None:
         self.help_tab.rowconfigure(1, weight=1); self.help_tab.columnconfigure(0, weight=1)
@@ -393,10 +434,11 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         self.live_tab.columnconfigure((0, 1, 2), weight=1)
         self.live_tab.rowconfigure(1, weight=1)
         self.metric_labels: dict[str, tk.Label] = {}
-        metrics = (("RPM", "rpm", "#00A8FF"), ("MAP kPa", "map", "#00E060"), ("TPS %", "tps", "#F7B955"), ("CLT °C", "clt", "#FF2020"), ("AFR", "afr", "#C8C8C8"), ("Batería V", "battery", "#00A8FF"))
-        for index, (title, key, color) in enumerate(metrics):
+        metrics = (("RPM", "rpm", "#00A8FF", "Revoluciones por minuto. Vigila cambios bruscos y el ralentí."), ("MAP kPa", "map", "#00E060", "Presión absoluta del múltiple. Útil para carga y vacío del motor."), ("TPS %", "tps", "#F7B955", "Posición de mariposa. Compárala con MAP y RPM durante aceleraciones."), ("CLT °C", "clt", "#FF2020", "Temperatura de refrigerante. Comprueba que sube de forma gradual."), ("AFR", "afr", "#C8C8C8", "Relación aire/combustible. Interprétala según combustible, lambda y objetivo."), ("Batería V", "battery", "#00A8FF", "Voltaje de alimentación. Una caída puede afectar la comunicación ECU."))
+        for index, (title, key, color, note) in enumerate(metrics):
             card = self._card(self.live_tab, title, 0, index % 3); card.grid_configure(columnspan=1)
             label = tk.Label(card, text="—", font=("Arial", 28, "bold"), bg=COLORS["panel"], fg=color); label.pack(pady=12)
+            Tooltip(card, note); Tooltip(label, note)
             self.metric_labels[key] = label
         graph_card = self._card(self.live_tab, "TELEMETRÍA EN TIEMPO REAL", 1, 0); graph_card.grid(columnspan=2, sticky="nsew")
         self.live_canvas = tk.Canvas(graph_card, bg=COLORS["panel"], highlightthickness=0); self.live_canvas.pack(fill="both", expand=True)
@@ -406,7 +448,7 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
 
     def _build_map(self) -> None:
         self.map_tab.columnconfigure(0, weight=1); self.map_tab.rowconfigure(0, weight=1)
-        self.surface = SurfaceCanvas(self.map_tab); self.surface.grid(row=0, column=0, sticky="nsew", padx=8, pady=8); self.surface.set_map(self.map_a)
+        self.surface = SurfaceCanvas(self.map_tab); self.surface.grid(row=0, column=0, sticky="nsew", padx=8, pady=8); self.surface.set_map(self.map_a); self.surface.bind("<Motion>", self.on_map_hover, add="+")
         side = tk.Frame(self.map_tab, bg=COLORS["panel"], width=240); side.grid(row=0, column=1, sticky="ns", padx=(0, 8), pady=8); side.grid_propagate(False)
         tk.Label(side, text="CONTROLES DEL MAPA", bg=COLORS["panel"], fg=COLORS["blue"], font=("Arial", 11, "bold")).pack(anchor="w", padx=14, pady=14)
         ttk.Button(side, text="Abrir .MSQ / .BIN", command=self.open_map).pack(fill="x", padx=14, pady=5)
@@ -420,7 +462,8 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
         tk.Label(side, text="Mapa activo", bg=COLORS["panel"], fg=COLORS["muted"]).pack(anchor="w", padx=14)
         self.map_name_var = tk.StringVar(value=self.map_a.name)
         tk.Label(side, textvariable=self.map_name_var, bg=COLORS["panel"], fg=COLORS["white"], wraplength=200).pack(anchor="w", padx=14, pady=5)
-        tk.Label(side, text="MSQ compatible / BIN DCTB", bg=COLORS["panel"], fg=COLORS["muted"]).pack(anchor="w", padx=14, pady=4)
+        help_label = tk.Label(side, text="MSQ compatible / BIN DCTB", bg=COLORS["panel"], fg=COLORS["muted"]); help_label.pack(anchor="w", padx=14, pady=4)
+        Tooltip(help_label, "Pasa el ratón sobre la superficie para ver fila, columna, valor y una nota de ajuste.")
 
     def _build_log(self) -> None:
         self.log_tab.rowconfigure(0, weight=1); self.log_tab.columnconfigure(0, weight=1)
@@ -447,6 +490,15 @@ Fuentes: EFI Analytics TunerStudio, documentación de definiciones ECU y wiki de
 
     def _set_quick(self, text: str) -> None:
         self.quick_status.configure(state="normal"); self.quick_status.delete("1.0", "end"); self.quick_status.insert("1.0", text); self.quick_status.configure(state="disabled")
+
+    def on_map_hover(self, event: tk.Event) -> None:
+        if not self.map_a.values:
+            return
+        width = max(1, self.surface.winfo_width()); height = max(1, self.surface.winfo_height())
+        col = min(self.map_a.cols - 1, max(0, int((event.x / width) * self.map_a.cols)))
+        row = min(self.map_a.rows - 1, max(0, int((event.y / height) * self.map_a.rows)))
+        value = self.map_a.values[row][col]
+        self.hover_var.set(f"Celda R{row + 1}/C{col + 1} · valor {value:.2f} · Ajuste: cambia poco, compara AFR/MAP y guarda una copia antes de escribir")
 
     def refresh_ports(self) -> None:
         ports = self.transport.available_ports(); self.port_combo["values"] = ports
