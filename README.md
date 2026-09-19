@@ -1,6 +1,6 @@
 # DC TUNER STUDIO
 
-Aplicación de escritorio offline-first para diagnóstico, telemetría y edición de mapas de motor. Este primer MVP está construido con **Python + Tkinter**, por lo que puede ejecutarse en Windows y Linux sin instalar un framework UI adicional.
+Aplicación de escritorio offline-first para diagnóstico, telemetría y edición de mapas de motor. Este MVP está construido con **Python + Tkinter** y se prepara como aplicación nativa para **Windows x86_64 de 64 bits** y **Linux x86_64 de 64 bits**, usando la resolución y el escalado de pantalla del PC.
 
 > La aplicación no genera datos sintéticos: sin una ECU real conectada, los valores permanecen en blanco. Las operaciones de escritura ECU no están automatizadas en este MVP.
 
@@ -29,6 +29,7 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Selector de perfil para **Speeduino**, **MegaSquirt/Microsquirt** y **ELM327**.
 - Adaptadores de identificación y normalización de telemetría en modo solo lectura.
 - Importación de definiciones TunerStudio-style `.ini` para identificar firma, versión y secciones del firmware.
+- Detección visible de plataforma: Windows/Linux x86_64 de 64 bits y ventana nativa adaptable al monitor.
 
 ## Inicio rápido
 
@@ -39,9 +40,9 @@ sudo apt install python3-tk
 python3 dc_tuner_studio.py
 ```
 
-### Windows 10/11
+### Windows 10/11 x86_64
 
-Instala Python 3.11+ con Tcl/Tk y ejecuta:
+Instala Python 3.11+ **de 64 bits** con Tcl/Tk y ejecuta:
 
 ```powershell
 python dc_tuner_studio.py

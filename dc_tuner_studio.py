@@ -20,6 +20,7 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Optional
 
 from ini_loader import EcuDefinition, load_definition
+from platform_support import desktop_geometry, detect_runtime
 from protocols import PROTOCOLS, ProtocolAdapter
 
 APP_NAME = "DC TUNER STUDIO"
@@ -331,14 +332,16 @@ class App(tk.Tk):
         super().__init__()
         self._show_splash()
         self.title(f"{APP_NAME}  |  v{VERSION}")
-        self.geometry("1280x800")
-        self.minsize(980, 640)
+        self.runtime = detect_runtime()
+        self.geometry(desktop_geometry(self))
+        self.minsize(1100, 720)
+        self.tk.call("tk", "scaling", max(1.0, self.winfo_fpixels("1i") / 72.0))
         self.configure(background=COLORS["bg"])
         self.map_a = MapData("Base Map")
         self.map_b = self.map_a.clone("Comparison Map")
         self.samples: list[dict] = []
         self.transport = EcuTransport(self.receive_sample)
-        self.status_var = tk.StringVar(value="DESCONECTADO · modo seguro")
+        self.status_var = tk.StringVar(value=f"DESCONECTADO · {self.runtime.label}")
         self.port_var = tk.StringVar(value="")
         self.protocol_var = tk.StringVar(value="MegaSquirt / Microsquirt")
         self.hover_var = tk.StringVar(value="Pasa el ratón sobre un dato para ver qué significa")
@@ -428,7 +431,7 @@ class App(tk.Tk):
         self._build_live(); self._build_map(); self._build_log(); self._build_compare(); self._build_help()
         footer = tk.Frame(self, bg=COLORS["panel2"], height=28); footer.pack(fill="x", side="bottom"); footer.pack_propagate(False)
         tk.Label(footer, text="USB / ELM327 · MS1 / MS2 / MS3 · Microsquirt", bg=COLORS["panel2"], fg=COLORS["muted"]).pack(side="left", padx=14)
-        self.footer_var = tk.StringVar(value="Puerto: sin ECU   |   115200 baud   |   esperando hardware real")
+        self.footer_var = tk.StringVar(value=f"{self.runtime.label}   |   Puerto: sin ECU   |   esperando hardware real")
         tk.Label(footer, textvariable=self.footer_var, bg=COLORS["panel2"], fg=COLORS["silver"]).pack(side="right", padx=14)
         tk.Label(footer, textvariable=self.hover_var, bg=COLORS["panel2"], fg=COLORS["blue"], anchor="w").pack(side="left", padx=14, fill="x", expand=True)
 
