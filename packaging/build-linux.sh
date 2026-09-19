@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$ROOT/dist/dc-tuner-studio-linux"
+rm -rf "$OUT"
+mkdir -p "$OUT"
+cp "$ROOT/dc_tuner_studio.py" "$OUT/"
+cp "$ROOT/README.md" "$OUT/"
+mkdir -p "$OUT/assets"
+cp "$ROOT/assets/dc-tuner-logo.gif" "$ROOT/assets/dc-tuner-cover.gif" "$OUT/assets/"
+cat > "$OUT/run-dc-tuner-studio.sh" <<'RUNNER'
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+exec python3 dc_tuner_studio.py
+RUNNER
+chmod +x "$OUT/run-dc-tuner-studio.sh"
+tar -C "$ROOT/dist" -czf "$ROOT/dist/dc-tuner-studio-linux-portable.tar.gz" "dc-tuner-studio-linux"
+printf 'Created %s\n' "$ROOT/dist/dc-tuner-studio-linux-portable.tar.gz"

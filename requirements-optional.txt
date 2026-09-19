@@ -1,0 +1,2 @@
+# Optional: only needed for real USB/serial ports. Simulator needs no packages.
+pyserial>=3.5

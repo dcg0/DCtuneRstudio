@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.spec
+.env
+*.pem
+*.key
+*.log
+# Local vehicle data and calibration exports
+*.msq.local
+*.bin.local
+calibrations/
+logs/
