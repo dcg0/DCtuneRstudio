@@ -209,3 +209,6 @@ python3 dctuner_web/servidor.py --host 0.0.0.0 --port 8080
 [5]: https://wiki.speeduino.com/en/reference/Interface_Protocol "Speeduino Interface Protocol"
 
 [6]: https://wiki.speeduino.com/en/Connecting_to_TunerStudio "Speeduino Connecting to TunerStudio"
+
+
+--- Desktop MVP and native downloads ---

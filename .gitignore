@@ -1,6 +1,19 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.venv/
+venv/
+dist/
+build/
+*.spec
+.env
+*.pem
+*.key
 *.log
 *.csv
-.env
+# Local vehicle data and calibration exports
+*.msq.local
+*.bin.local
+calibrations/
+logs/
+preview/
