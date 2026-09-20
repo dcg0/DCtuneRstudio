@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=DC-tuneRstudio
+Comment=Diagnóstico y ajuste ECU DC Tuner Studio
+Exec=DC-Tuner-Studio-Linux-x86_64
+Icon=dc-tuner-rojo-icon
+Terminal=false
+Categories=Development;Utility;

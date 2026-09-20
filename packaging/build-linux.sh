@@ -18,6 +18,7 @@ cp "$ROOT/docs/TUNERSTUDIO_COMPATIBILITY.md" "$OUT/docs/"
 cp "$ROOT/docs/SPEEDUINO_INI_GUIDE.md" "$OUT/docs/"
 mkdir -p "$OUT/assets"
 cp "$ROOT/assets/dc-tuner-logo.gif" "$ROOT/assets/dc-tuner-cover.gif" "$OUT/assets/"
+cp "$ROOT/assets/branding/dc-tuner-rojo-icon.png" "$ROOT/packaging/dc-tuner-studio.desktop" "$OUT/"
 mkdir -p "$OUT/assets/definitions"
 cp "$ROOT/assets/definitions/speeduino.ini" "$ROOT/assets/definitions/SPEEDUINO-LICENSE.txt" "$OUT/assets/definitions/"
 cat > "$OUT/run-dc-tuner-studio.sh" <<'RUNNER'
