@@ -29,6 +29,7 @@ Aplicación de escritorio offline-first para diagnóstico, telemetría y edició
 - Selector de perfil para **Speeduino**, **MegaSquirt/Microsquirt** y **ELM327**.
 - Adaptadores de identificación y normalización de telemetría en modo solo lectura.
 - Importación de definiciones TunerStudio-style `.ini` para identificar firma, versión y secciones del firmware.
+- Guía detallada de Speeduino: `docs/SPEEDUINO_INI_GUIDE.md`.
 - Detección visible de plataforma: Windows/Linux x86_64 de 64 bits y ventana nativa adaptable al monitor.
 
 ## Inicio rápido
