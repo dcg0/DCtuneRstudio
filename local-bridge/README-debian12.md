@@ -1,0 +1,211 @@
+# DCtuneRstudio
+
+**DCtuneRstudio** es una interfaz web local para supervisar una ECU MegaSquirt o Speeduino desde Debian 12 amd64. La computadora que tiene conectado el USB ejecuta el backend y el navegador muestra datos reales. No se requiere internet durante la operación local.
+
+> **Importante:** no existe modo demo. Si la ECU no responde, el panel muestra **ECU DESCONECTADA** y deja los valores en cero; nunca fabrica telemetría.
+
+Al abrirse, el programa muestra como portada splash la imagen `dctuner_web/splash.jpg` proporcionada para este proyecto. Después de la entrada inicial, la interfaz queda en **tema oscuro** y **español** de forma predeterminada. La navegación incluye Panel principal, Ajuste, Diagnóstico, Registro y análisis, y Configuración.
+
+## Arquitectura de acceso
+
+El paquete ofrece dos formas de trabajo desde navegador:
+
+| Acceso | Uso | Ventaja | Requisito |
+| --- | --- | --- | --- |
+| Panel nativo en `:8080` | Medidores, registro, exportación CSV y estado | Es la vía más ligera para una PC antigua | Python 3, Flask y pySerial |
+| noVNC en `:6080` | Escritorio virtual completo | Permite ver el entorno gráfico aunque el equipo no tenga pantalla | Xvfb, Openbox, x11vnc, noVNC y websockify |
+
+El panel nativo es la opción recomendada para uso diario. noVNC queda disponible como consola de mantenimiento. Ambas direcciones funcionan únicamente dentro de la red local.
+
+La familia **Speeduino** está disponible en el selector de ECU. Su perfil usa el protocolo primario binario documentado por Speeduino: conexión USB/serie a `115200 8N1`, petición `A` y respuesta de telemetría de 120 bytes en little-endian. El lector extrae RPM, MAP, temperatura, AFR, avance, TPS y voltaje sin mezclar ese formato con el de MegaSquirt.
+
+### Matriz de conexión y protocolo
+
+| Familia | Transporte | Ajuste predeterminado | Estado en este paquete |
+| --- | --- | --- | --- |
+| Speeduino | USB/serie, `/dev/ttyUSB*` o `/dev/ttyACM*` | 115200 8N1, petición binaria `A`, respuesta de 120 bytes little-endian | Telemetría primaria implementada y probada |
+| MegaSquirt-II / MS2-Extra | USB/serie | 115200; el comando realtime oficial usa `a`, CAN ID y table index | Transporte serie y parser genérico disponibles; el mapa binario depende del `.ini`/firmware |
+| MegaSquirt-III / MicroSquirt | USB/serie y, según instalación, CAN | Firmware Default o protocolo definido por su `.ini` | Requiere seleccionar la definición exacta antes de leer/escribir tablas |
+
+El programa no inventa offsets de MegaSquirt ni fuerza comandos de escritura entre variantes. Para una conexión real se debe cargar la definición `.ini` correspondiente al firmware. Esta decisión evita mostrar valores aparentemente válidos cuando la trama pertenece a otro MS1/MS2/MS3.
+
+## Estructura
+
+```text
+DCtuneRstudio/
+├── instalador.sh             # instalación y activación del servicio
+├── dctuner.service           # arranque automático de systemd
+├── dctuner-run.sh            # Xvfb, noVNC y servidor web
+├── conf-red                  # ejemplo de IP fija para cable directo
+├── dctuner_web/
+│   ├── index.html             # interfaz principal
+│   ├── styles.css             # estilos sin frameworks
+│   ├── panel.js               # actualización, gráfica y controles
+│   └── servidor.py            # API Flask y transporte serie real
+├── tests/test_servidor.py     # pruebas del parser y API
+└── README.md
+```
+
+## Instalación en Linux 64-bit (Debian 12 amd64)
+
+La instalación necesita privilegios de administrador. Si el equipo está completamente aislado, prepara antes los paquetes Debian en una memoria USB o usa un DVD/repositorio local. Después de instalar, la aplicación no hace conexiones externas.
+
+1. Copia la carpeta completa al equipo ECU. Por ejemplo, desde una memoria USB:
+
+   ```sh
+   cp -a /media/usuario/USB/DCtuneRstudio /tmp/
+   cd /tmp/DCtuneRstudio
+   ```
+
+2. Conecta el cable de red entre la PC ECU y la laptop. Identifica la interfaz con:
+
+   ```sh
+   ip -br link
+   ```
+
+3. Ejecuta el instalador. Para una instalación con paquetes ya descargados usa `DCTUNER_OFFLINE=1`:
+
+   ```sh
+   sudo DCTUNER_OFFLINE=1 sh instalador.sh
+   ```
+
+   Si el sistema tiene un repositorio Debian accesible durante la instalación, se puede omitir la variable:
+
+   ```sh
+   sudo sh instalador.sh
+   ```
+
+4. Si la interfaz no se llama `enp1s0`, repite la instalación indicando el nombre correcto:
+
+   ```sh
+   sudo DCTUNER_NET_IFACE=enp3s0 DCTUNER_OFFLINE=1 sh instalador.sh
+   ```
+
+El instalador copia la aplicación a `/opt/dctuner`, instala `python3-flask`, `python3-serial`, Xvfb, Openbox, x11vnc, noVNC y websockify, añade el usuario al grupo `dialout`, configura la IP `192.168.50.10/24` y activa `dctuner.service`.
+
+## Acceso desde otra PC
+
+Configura el adaptador de red de la PC cliente con una dirección del mismo rango, por ejemplo `192.168.50.20/24`, sin gateway. Abre:
+
+- **Panel principal:** `http://192.168.50.10:8080/`
+- **Consola noVNC:** `http://192.168.50.10:6080/vnc.html`
+
+La ECU se conecta por USB a la PC que ejecuta DCtuneRstudio. El cliente web no necesita drivers USB.
+
+## Configurar el puerto de la ECU
+
+Comprueba qué dispositivo creó Linux:
+
+```sh
+ls -l /dev/ttyUSB* /dev/ttyACM* 2>/dev/null || true
+dmesg | tail -n 30
+id
+```
+
+Los adaptadores FTDI, CH340 y CP2102 normalmente aparecen como `/dev/ttyUSB0`. Algunos controladores aparecen como `/dev/ttyACM0`. El usuario del servicio debe pertenecer a `dialout`; cierra la sesión y vuelve a entrar si necesitas que se actualice el grupo.
+
+La configuración está en `/etc/default/dctuner`:
+
+```sh
+DCTUNER_SERIE=1
+DCTUNER_PORT=/dev/ttyUSB0
+DCTUNER_BAUD=115200
+DCTUNER_WEB_PORT=8080
+DCTUNER_VNC_PORT=6080
+```
+
+El servicio trabaja siempre en serie real. Ajusta el puerto, perfil y baudrate, y reinicia:
+
+```sh
+sudo systemctl restart dctuner.service
+sudo systemctl status dctuner.service --no-pager
+```
+
+El backend acepta dos formatos de telemetría genérica para perfiles y adaptadores locales:
+
+```text
+1200,86,100,14.7,35,12,13.8,18
+RPM=1200,TEMP=86,MAP=100,AFR=14.7,LOAD=35,ADV=12,VOLT=13.8,TPS=18
+```
+
+El protocolo exacto de MegaSquirt puede variar entre MS1, MS2, MS3 y MicroSquirt. Por eso el transporte base no adivina comandos ni escribe mapas automáticamente. Para usar una familia concreta se debe añadir su perfil de protocolo, con la tasa de comunicación y el formato de trama confirmados para ese firmware.
+
+## Verificación y solución de problemas
+
+Prueba el backend sin abrir un puerto de red:
+
+```sh
+python3 dctuner_web/servidor.py --self-test
+```
+
+Comprueba el servicio:
+
+```sh
+sudo systemctl is-enabled dctuner.service
+sudo systemctl is-active dctuner.service
+sudo journalctl -u dctuner.service -n 80 --no-pager
+```
+
+Comprueba que escucha en los puertos esperados:
+
+```sh
+ss -ltnp | grep -E ':8080|:6080'
+curl http://127.0.0.1:8080/api/health
+```
+
+Si el panel no abre desde la laptop, verifica el enlace físico, la IP de ambos equipos y que el adaptador cliente no tenga una ruta que reemplace la red `192.168.50.0/24`. Si `:8080` funciona pero `:6080` no, revisa si `/usr/share/novnc` existe y consulta `/run/dctuner/websockify.log`.
+
+## Seguridad y operación
+
+La aplicación escucha en todas las interfaces porque el uso previsto es una red directa. No la publiques en internet ni la conectes a una red compartida sin colocar una protección adicional. La terminal solo intenta enviar comandos cuando existe un puerto serie real abierto y limita los comandos a texto ASCII corto. El borrado de DTC, las pruebas de actuadores y la escritura de mapas requieren un perfil de ECU explícito.
+
+Los registros CSV se guardan en `/var/lib/dctuner/logs`. El botón **EXPORTAR CSV** descarga la ventana de telemetría retenida en memoria. Para conservar sesiones completas, inicia **GRABAR** antes de la prueba.
+
+El bloque **Editor local de tabla 16 × 16** permite cargar archivos `.MSQ`, `.BIN`, `.CSV` o JSON desde el navegador, modificar celdas, deshacer y rehacer cambios, comparar otro archivo y guardar una copia. La vista 3D es una visualización de la tabla. El editor no escribe en la ECU: la copia modificada debe validarse con el perfil de firmware correspondiente antes de usarla en el vehículo.
+
+### Funciones trasladadas desde MegaLogViewer
+
+La revisión del paquete adjunto identificó un visor de logs, diccionario de campos, campos calculados, fórmulas personalizadas, filtros de RPM/MAP/CLT, gráficas, reproducción y análisis VE. La versión web incorpora un visor CSV/LG con selección de ejes, filtros de RPM, MAP y CLT, filtro lógico personalizado, reproducción local, gráfica de canales y un análisis VE por celdas con número de muestras, AFR objetivo y sugerencias aplicables a la tabla local. Estas funciones se implementan desde cero y no incluyen los binarios ni las librerías propietarias de MegaLogViewer.
+
+El paquete Linux adjunto contiene un programa Java de escritorio y el ejecutable HD es un binario PE32 para Windows. Ninguno se ejecuta dentro del servicio local; el sistema web solo usa los archivos de log y las tablas como datos locales.
+
+## Desarrollo y pruebas
+
+No hay dependencias JavaScript externas. Esto reduce el consumo y evita que el panel dependa de internet. En una estación de desarrollo con Flask instalado, ejecuta:
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 dctuner_web/servidor.py --self-test
+```
+
+Para iniciar manualmente en modo ECU real:
+
+```sh
+python3 dctuner_web/servidor.py --host 0.0.0.0 --port 8080 --serie
+```
+
+## Resumen de direcciones
+
+| Elemento | Valor |
+| --- | --- |
+| PC ECU | `192.168.50.10/24` |
+| Panel web | `http://192.168.50.10:8080/` |
+| Consola noVNC | `http://192.168.50.10:6080/vnc.html` |
+| ECU | USB directo a la PC ECU |
+| Internet | No necesario después de instalar |
+| Logs | `/var/lib/dctuner/logs/` |
+| Servicio | `dctuner.service` |
+
+## Referencias
+
+[1]: https://www.debian.org/releases/bookworm/ "Debian 12 Bookworm"
+
+[2]: https://flask.palletsprojects.com/ "Flask Documentation"
+
+[3]: https://pyserial.readthedocs.io/ "pySerial Documentation"
+
+[4]: https://novnc.com/info.html "noVNC Project Information"
+
+[5]: https://wiki.speeduino.com/en/reference/Interface_Protocol "Speeduino Interface Protocol"
+
+[6]: https://wiki.speeduino.com/en/Connecting_to_TunerStudio "Speeduino Connecting to TunerStudio"

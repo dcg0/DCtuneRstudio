@@ -1,0 +1,7 @@
+# /etc/network/interfaces.d/dctuner
+# Reemplaza enp1s0 por el nombre real si es distinto (ip -br link).
+# No se define gateway porque la red es exclusivamente local.
+auto enp1s0
+iface enp1s0 inet static
+    address 192.168.50.10
+    netmask 255.255.255.0

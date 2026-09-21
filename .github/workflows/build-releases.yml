@@ -1,0 +1,48 @@
+name: Build DC Tuner Studio packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - 'local-bridge/**'
+      - 'README.md'
+      - 'PLATAFORMAS.md'
+      - 'tools/**'
+      - '.github/workflows/build-releases.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - name: Build web application
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
+          pnpm build
+      - name: Test local bridge
+        run: |
+          python3 -m pip install -r local-bridge/requirements.txt
+          python3 -m unittest discover -s local-bridge/tests -p 'test*.py' -v
+      - name: Package supported targets
+        run: bash tools/build-releases.sh
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: dc-tuner-studio-packages
+          path: releases/*-raspberry-*.tar.gz
+          if-no-files-found: error

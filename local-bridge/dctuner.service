@@ -1,0 +1,22 @@
+[Unit]
+Description=DC TUNER STUDIO web local para MegaSquirt
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/dctuner
+ExecStart=/opt/dctuner/dctuner-run.sh
+Restart=on-failure
+RestartSec=3
+KillMode=control-group
+Environment=PYTHONUNBUFFERED=1
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ReadWritePaths=/var/lib/dctuner /run/dctuner
+
+[Install]
+WantedBy=multi-user.target
