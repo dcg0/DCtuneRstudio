@@ -31,6 +31,8 @@ jobs:
           version: 10.34.2
       - name: Install desktop test dependencies
         run: sudo apt-get update && sudo apt-get install --yes python3-tk
+      - name: Install local bridge dependencies
+        run: python3 -m pip install -r local-bridge/requirements.txt
       - name: Build web application
         run: |
           pnpm install --frozen-lockfile
@@ -40,7 +42,6 @@ jobs:
         run: python3 -m unittest discover -s tests -p 'test*.py' -v
       - name: Test local bridge
         run: |
-          python3 -m pip install -r local-bridge/requirements.txt
           python3 -m unittest discover -s local-bridge/tests -p 'test*.py' -v
       - name: Package supported targets
         run: bash tools/build-releases.sh
