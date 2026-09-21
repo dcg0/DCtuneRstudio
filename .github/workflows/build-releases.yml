@@ -28,12 +28,16 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.4.1
+          version: 10.34.2
+      - name: Install desktop test dependencies
+        run: sudo apt-get update && sudo apt-get install --yes python3-tk
       - name: Build web application
         run: |
           pnpm install --frozen-lockfile
           pnpm check
           pnpm build
+      - name: Test desktop logic
+        run: python3 -m unittest discover -s tests -p 'test*.py' -v
       - name: Test local bridge
         run: |
           python3 -m pip install -r local-bridge/requirements.txt
