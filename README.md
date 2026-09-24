@@ -1,5 +1,11 @@
 # DCtuneRstudio
 
+
+<p align="center">
+  <a href="https://github.com/dcg0/DCtuneRstudio/actions/workflows/security.yml"><img src="https://github.com/dcg0/DCtuneRstudio/actions/workflows/security.yml/badge.svg" alt="Security checks"></a>
+  <a href="https://github.com/dcg0/DCtuneRstudio/security"><img src="https://img.shields.io/badge/security-policy-available-176b46" alt="Security policy available"></a>
+</p>
+
 ![DCtuneRstudio](client/public/splash.png)
 
 > Estudio web local para calibración, telemetría y análisis de registros de MegaSquirt y Speeduino en Linux y Windows de 32/64 bits.
