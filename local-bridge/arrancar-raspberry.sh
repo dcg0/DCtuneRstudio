@@ -7,7 +7,7 @@ export DCTUNER_PORT=${DCTUNER_PORT:-/dev/ttyUSB0}
 export DCTUNER_BAUD=${DCTUNER_BAUD:-115200}
 export DCTUNER_PROFILE=${DCTUNER_PROFILE:-speeduino}
 export DCTUNER_WEB_PORT=${DCTUNER_WEB_PORT:-8080}
-export DCTUNER_HOST=${DCTUNER_HOST:-0.0.0.0}
+export DCTUNER_HOST=${DCTUNER_HOST:-127.0.0.1}
 cd "$ROOT/dctuner_web"
 exec python3 servidor.py --host "$DCTUNER_HOST" --port "$DCTUNER_WEB_PORT" --serie
 

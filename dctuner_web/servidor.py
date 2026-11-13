@@ -38,7 +38,7 @@ MAP_DIR = Path(os.environ.get("DCTUNER_MAP_DIR", str(DATA_DIR / "maps")))
 DEFAULT_PORT = os.environ.get("DCTUNER_PORT", "COM3" if os.name == "nt" else "/dev/ttyUSB0")
 DEFAULT_BAUD = int(os.environ.get("DCTUNER_BAUD", "115200"))
 DEFAULT_PROFILE = os.environ.get("DCTUNER_PROFILE", "megasquirt")
-WEB_HOST = os.environ.get("DCTUNER_HOST", "0.0.0.0")
+WEB_HOST = os.environ.get("DCTUNER_HOST", "127.0.0.1")
 WEB_PORT = int(os.environ.get("DCTUNER_WEB_PORT", "8080"))
 
 logging.basicConfig(level=os.environ.get("DCTUNER_LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s")
@@ -321,6 +321,9 @@ app = Flask(__name__, static_folder=str(BASE_DIR), static_url_path="")
 def no_cache(response: Response) -> Response:
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
 

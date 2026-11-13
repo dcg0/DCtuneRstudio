@@ -181,7 +181,7 @@ python3 dctuner_web/servidor.py --self-test
 Para iniciar manualmente en modo ECU real:
 
 ```sh
-python3 dctuner_web/servidor.py --host 0.0.0.0 --port 8080 --serie
+python3 dctuner_web/servidor.py --host 127.0.0.1 --port 8080 --serie
 ```
 
 ## Resumen de direcciones
@@ -209,3 +209,5 @@ python3 dctuner_web/servidor.py --host 0.0.0.0 --port 8080 --serie
 [5]: https://wiki.speeduino.com/en/reference/Interface_Protocol "Speeduino Interface Protocol"
 
 [6]: https://wiki.speeduino.com/en/Connecting_to_TunerStudio "Speeduino Connecting to TunerStudio"
+
+> El puente escucha en `127.0.0.1` por defecto. Para acceso desde otra máquina, configura explícitamente `DCTUNER_HOST` y limita el puerto con el firewall.

@@ -30,7 +30,7 @@ DCTUNER_PORT=/dev/ttyUSB0
 DCTUNER_BAUD=115200
 DCTUNER_PROFILE=megasquirt
 DCTUNER_WEB_PORT=8080
-DCTUNER_HOST=0.0.0.0
+DCTUNER_HOST=127.0.0.1
 EOF
 if getent group dialout >/dev/null 2>&1 && [ -n "${SUDO_USER:-}" ]; then usermod -a -G dialout "$SUDO_USER" || true; fi
 cat >/etc/systemd/system/dctuner-linux.service <<'EOF'

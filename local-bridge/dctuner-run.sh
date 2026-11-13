@@ -9,7 +9,7 @@ DCTUNER_PORT=${DCTUNER_PORT:-/dev/ttyUSB0}
 DCTUNER_BAUD=${DCTUNER_BAUD:-115200}
 DCTUNER_WEB_PORT=${DCTUNER_WEB_PORT:-8080}
 DCTUNER_VNC_PORT=${DCTUNER_VNC_PORT:-6080}
-export DCTUNER_PROFILE DCTUNER_PORT DCTUNER_BAUD DCTUNER_WEB_PORT DCTUNER_HOST=0.0.0.0
+export DCTUNER_PROFILE DCTUNER_PORT DCTUNER_BAUD DCTUNER_WEB_PORT DCTUNER_HOST=${DCTUNER_HOST:-127.0.0.1}
 
 mkdir -p /run/dctuner
 
@@ -36,4 +36,4 @@ if command -v Xvfb >/dev/null 2>&1; then
 fi
 
 cd /opt/dctuner/dctuner_web
-exec python3 servidor.py --host 0.0.0.0 --port "$DCTUNER_WEB_PORT" --serie
+exec python3 servidor.py --host "$DCTUNER_HOST" --port "$DCTUNER_WEB_PORT" --serie
