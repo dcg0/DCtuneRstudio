@@ -1,6 +1,4 @@
 # DCtuneRstudio
-Idioma español de México Escritorio Xfce Arquitectura x86_64 Arranque BIOS y UEFI
-
 <p align="center">
   <a href="https://github.com/dcg0/DCtuneRstudio/actions/workflows/security.yml"><img src="https://github.com/dcg0/DCtuneRstudio/actions/workflows/security.yml/badge.svg" alt="Security checks"></a>
   <a 
