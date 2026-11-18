@@ -11,6 +11,29 @@
 
 Interfaz web de escritorio para calibración, telemetría y análisis de logs de **MegaSquirt** y **Speeduino**. La entrega funciona con **ECU real únicamente**: el modo offline en Debian 12 conecta USB/serie y el sitio online sirve como interfaz de configuración/documentación, pero nunca inventa ni simula datos de motor.
 
+## Descargas
+
+Los paquetes listos se encuentran en la carpeta [`releases/`](https://github.com/dcg0/DCtuneRstudio/tree/main/releases). Estos archivos son paquetes de aplicación para cada sistema; **no son APK de Android**. Windows y Linux no usan formato APK.
+
+| Plataforma | Paquete | Enlace |
+|---|---|---|
+| Linux 32 bits | ZIP | [Descargar](releases/DCtuneRstudio-linux-i386.zip) |
+| Linux 64 bits | ZIP | [Descargar](releases/DCtuneRstudio-linux-amd64.zip) |
+| Windows 32 bits | ZIP | [Descargar](releases/DCtuneRstudio-windows-x86.zip) |
+| Windows 64 bits | ZIP | [Descargar](releases/DCtuneRstudio-windows-x64.zip) |
+| Raspberry Pi ARMv7 / 32 bits | TAR.GZ | [Descargar](releases/DCtuneRstudio-raspberry-armv7.tar.gz) |
+| Raspberry Pi ARM64 / 64 bits | TAR.GZ | [Descargar](releases/DCtuneRstudio-raspberry-arm64.tar.gz) |
+
+Los ZIP/TAR contienen el puente Flask, la interfaz local, los lanzadores y el instalador correspondiente. En Windows se necesita Python de la misma arquitectura: Python x86 para Windows de 32 bits y Python x64 para Windows de 64 bits. En Linux y Raspberry Pi se necesita Python 3, Flask, pySerial y permisos para el puerto serie.
+
+### Raspberry Pi
+
+En Raspberry Pi OS de 32 o 64 bits, conecta la ECU por USB, extrae el paquete correspondiente y ejecuta:
+
+```bash
+cd DCtuneRstudio-raspberry-armv7/local-bridge  # usa arm64 si corresponde
+sudo sh instalar-raspberry.sh
+```
 ## Qué incluye
 
 - Panel en vivo con **tacómetro circular**, **velocímetro circular**, AFR y temperatura CLT.
@@ -32,7 +55,7 @@ La web funciona como interfaz y analizador de archivos reales. Los navegadores n
 
 La cabecera y el panel lateral muestran en tiempo real uno de tres estados: **ECU conectada**, **ECU desconectada** o **error de conexión**. El navegador consulta `/api/status` cada 500 ms; cuando una ECU conectada deja de responder aparece una alerta visible y una notificación, y cuando vuelve a responder se notifica la recuperación de la telemetría.
 
-### Lucy, asistente local
+### asistente local
 
 El chat integrado se llama **Lucy** y usa `client/public/lucy.jpg` como avatar local, sin depender de internet. Su base de conocimiento cubre instalación Debian 12, puertos USB/TTY, permisos `dialout`, baudrate 8N1, protocolos Speeduino y MegaSquirt, archivos INI/MSQ/BIN, RPM, VSS, AFR, MAP, CLT, voltaje, tablas VE/Spark, CSV/LOG, VE Analyze, respaldos, DTC, actuadores, errores del servicio y seguridad de pruebas. Las respuestas son informativas y no habilitan por sí solas escritura peligrosa en la ECU.
 
